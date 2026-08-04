@@ -184,34 +184,34 @@ Task selesai jika:
 
 ### Database laporan
 
-- [ ] **DB-201 [P0]** Buat model Report, ReportItem, dan constraint laporan unik.
-- [ ] **DB-202 [P0]** Tambahkan indeks daftar laporan per periode, status, dan UPT.
+- [x] **DB-201 [P0]** Buat model Report, ReportItem, dan constraint laporan unik.
+- [x] **DB-202 [P0]** Tambahkan indeks daftar laporan per periode, status, dan UPT.
 - [ ] **DB-203 [P0]** Buat migration dan seed laporan development.
 
 ### API laporan
 
-- [ ] **BE-201 [P0]** Buat repository dan service laporan.
-- [ ] **BE-202 [P0]** Buat API daftar laporan dengan pagination dan filter.
-- [ ] **BE-203 [P0]** Buat API membuat laporan DRAFT.
-- [ ] **BE-204 [P0]** Buat API detail laporan.
-- [ ] **BE-205 [P0]** Buat API memperbarui draf dan item laporan.
-- [ ] **BE-206 [P0]** Terapkan unique constraint dan respons konflik.
-- [ ] **BE-207 [P0]** Terapkan pembatasan UPT pada seluruh query laporan.
+- [x] **BE-201 [P0]** Buat repository dan service laporan.
+- [x] **BE-202 [P0]** Buat API daftar laporan dengan pagination dan filter.
+- [x] **BE-203 [P0]** Buat API membuat laporan DRAFT.
+- [x] **BE-204 [P0]** Buat API detail laporan.
+- [x] **BE-205 [P0]** Buat API memperbarui draf dan item laporan.
+- [x] **BE-206 [P0]** Terapkan unique constraint dan respons konflik.
+- [x] **BE-207 [P0]** Terapkan pembatasan UPT pada seluruh query laporan.
 
 ### Frontend laporan
 
-- [ ] **FE-201 [P0]** Buat halaman daftar laporan UPT memakai reusable DataTable.
-- [ ] **FE-202 [P0]** Buat filter periode dan status memakai reusable FilterBar.
-- [ ] **FE-203 [P0]** Buat form laporan berbasis indikator memakai primitive shadcn/ui dan reusable FormField.
-- [ ] **FE-204 [P0]** Implementasikan simpan draf.
-- [ ] **FE-205 [P0]** Buat indikator status simpan, loading, error, dan retry.
-- [ ] **FE-206 [P0]** Buat halaman detail read-only sesuai status memakai PageHeader, StatusBadge, dan EmptyState.
+- [x] **FE-201 [P0]** Buat halaman daftar laporan UPT memakai reusable DataTable.
+- [x] **FE-202 [P0]** Buat filter periode dan status memakai reusable FilterBar.
+- [x] **FE-203 [P0]** Buat form laporan berbasis indikator memakai primitive shadcn/ui dan reusable FormField.
+- [x] **FE-204 [P0]** Implementasikan simpan draf.
+- [x] **FE-205 [P0]** Buat indikator status simpan, loading, error, dan retry.
+- [x] **FE-206 [P0]** Buat halaman detail read-only sesuai status memakai PageHeader, StatusBadge, dan EmptyState.
 
 ### Testing
 
-- [ ] **QA-201 [P0]** Test pembuatan laporan dan duplikasi.
-- [ ] **QA-202 [P0]** Test UPT A tidak dapat membaca/mengubah laporan UPT B.
-- [ ] **QA-203 [P0]** Test pagination dan filter.
+- [x] **QA-201 [P0]** Test pembuatan laporan dan duplikasi.
+- [x] **QA-202 [P0]** Test UPT A tidak dapat membaca/mengubah laporan UPT B.
+- [x] **QA-203 [P0]** Test pagination dan filter.
 
 ### Exit Minggu 3
 

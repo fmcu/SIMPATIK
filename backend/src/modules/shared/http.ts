@@ -26,7 +26,16 @@ export function validate(schema: ZodTypeAny, source: "body" | "query" | "params"
       next(new AppError(400, "VALIDATION_ERROR", "Data request tidak valid.", fields));
       return;
     }
-    request[source] = result.data;
+    if (source === "query") {
+      Object.defineProperty(request, "query", {
+        value: result.data,
+        configurable: true,
+        enumerable: true,
+        writable: true,
+      });
+    } else {
+      request[source] = result.data;
+    }
     next();
   };
 }

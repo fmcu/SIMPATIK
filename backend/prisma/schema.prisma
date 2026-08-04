@@ -208,6 +208,7 @@ model Report {
   @@unique([uptId, periodId, reportType])
   @@index([periodId, status])
   @@index([uptId, periodId])
+  @@index([periodId, uptId, status])
 }
 
 model ReportItem {
