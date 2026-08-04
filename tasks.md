@@ -133,27 +133,27 @@ Task selesai jika:
 
 ### Better Auth
 
-- [ ] **AUTH-001 [P0]** Integrasikan Better Auth pada Express menggunakan Prisma adapter.
-- [ ] **AUTH-002 [P0]** Mount handler Better Auth sebelum `express.json()`.
-- [ ] **AUTH-003 [P0]** Aktifkan email/password login dan session database.
-- [ ] **AUTH-004 [P0]** Konfigurasi `BETTER_AUTH_SECRET`, base URL, cookie, dan trusted origins.
-- [ ] **AUTH-005 [P0]** Konfigurasi CORS allowlist dan credentials.
-- [ ] **AUTH-006 [P0]** Tambahkan tujuh nilai role, `uptId`, dan status aktif pada user.
-- [ ] **AUTH-007 [P0]** Buat middleware `requireSession`.
-- [ ] **AUTH-008 [P0]** Buat middleware `requireRole`.
-- [ ] **AUTH-009 [P0]** Buat middleware pembatasan UPT.
-- [ ] **AUTH-010 [P0]** Pastikan akun tidak aktif tidak dapat membuat session baru.
-- [ ] **AUTH-011 [P0]** Tambahkan rate limit pada endpoint autentikasi.
+- [x] **AUTH-001 [P0]** Integrasikan Better Auth pada Express menggunakan Prisma adapter.
+- [x] **AUTH-002 [P0]** Mount handler Better Auth sebelum `express.json()`.
+- [x] **AUTH-003 [P0]** Aktifkan email/password login dan session database.
+- [x] **AUTH-004 [P0]** Konfigurasi `BETTER_AUTH_SECRET`, base URL, cookie, dan trusted origins.
+- [x] **AUTH-005 [P0]** Konfigurasi CORS allowlist dan credentials.
+- [x] **AUTH-006 [P0]** Tambahkan tujuh nilai role, `uptId`, dan status aktif pada user.
+- [x] **AUTH-007 [P0]** Buat middleware `requireSession`.
+- [x] **AUTH-008 [P0]** Buat middleware `requireRole`.
+- [x] **AUTH-009 [P0]** Buat middleware pembatasan UPT.
+- [x] **AUTH-010 [P0]** Pastikan akun tidak aktif tidak dapat membuat session baru.
+- [x] **AUTH-011 [P0]** Tambahkan rate limit pada endpoint autentikasi.
 - [ ] **AUTH-012 [P0]** Terapkan permission matrix tujuh role dan segregation of duties.
-- [ ] **AUTH-013 [P0]** Pastikan System Administrator tidak memiliki akses substansi laporan secara default.
+- [x] **AUTH-013 [P0]** Pastikan System Administrator tidak memiliki akses substansi laporan secara default.
 
 ### Halaman auth
 
-- [ ] **FE-101 [P0]** Buat halaman login.
-- [ ] **FE-102 [P0]** Buat auth client dan session provider.
-- [ ] **FE-103 [P0]** Buat route guard/redirect untuk pengalaman pengguna.
-- [ ] **FE-104 [P0]** Buat halaman akses ditolak.
-- [ ] **FE-105 [P0]** Buat menu berdasarkan role.
+- [x] **FE-101 [P0]** Buat halaman login.
+- [x] **FE-102 [P0]** Buat auth client dan session provider.
+- [x] **FE-103 [P0]** Buat route guard/redirect untuk pengalaman pengguna.
+- [x] **FE-104 [P0]** Buat halaman akses ditolak.
+- [x] **FE-105 [P0]** Buat menu berdasarkan role.
 
 ### User dan UPT
 

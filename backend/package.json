@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "lint": "eslint src",
     "type-check": "pnpm --filter @simpatik/contracts build && tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "tsx --test \"src/**/*.test.ts\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy"
@@ -17,6 +17,7 @@
   "dependencies": {
     "@prisma/client": "^6.15.0",
     "@simpatik/contracts": "workspace:*",
+    "better-auth": "^1.6.25",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",

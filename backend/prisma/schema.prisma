@@ -52,6 +52,7 @@ model User {
   auditLogs     AuditLog[]
 
   @@index([uptId])
+  @@index([active])
 }
 
 model Session {
@@ -66,6 +67,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([expiresAt])
 }
 
 model Account {

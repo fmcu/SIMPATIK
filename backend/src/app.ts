@@ -1,8 +1,10 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import { toNodeHandler } from "better-auth/node";
 
 import { environment } from "./config/environment.js";
+import { auth } from "./modules/auth/auth.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFoundHandler } from "./middleware/error.js";
 import { logger } from "./middleware/logger.js";
@@ -30,6 +32,7 @@ export function createApp(database?: DatabaseReadinessClient): express.Express {
   );
   app.use(requestId);
   app.use(logger);
+  app.all("/api/auth/*splat", toNodeHandler(auth));
   app.use(express.json({ limit: "1mb" }));
 
   app.use("/health", createHealthRouter(database));
