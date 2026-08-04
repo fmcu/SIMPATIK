@@ -8,6 +8,16 @@ import type { ReportService } from "./report.service.js";
 export class ReportController {
   constructor(private readonly service: ReportService) {}
 
+  validateCompleteness = async (request: Request, response: Response): Promise<void> => {
+    sendData(
+      response,
+      await this.service.validateCompleteness(
+        routeParam(request, "id"),
+        (request as AuthRequest).uptScopeId,
+      ),
+    );
+  };
+
   list = async (request: Request, response: Response): Promise<void> => {
     const query = request.query as unknown as {
       page: number;

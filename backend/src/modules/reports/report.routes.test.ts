@@ -39,6 +39,9 @@ function controller(): ReportControllerHandlers {
     detail: async (_request, response) => {
       response.json({ data: {}, meta: {} });
     },
+    validateCompleteness: async (_request, response) => {
+      response.json({ data: { valid: true }, meta: {} });
+    },
     update: async (_request, response) => {
       response.json({ data: {}, meta: {} });
     },

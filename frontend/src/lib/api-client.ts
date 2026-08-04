@@ -141,6 +141,11 @@ export type ReportUpdateInput = {
   version: number;
   items: Array<{ indicatorId: string; value?: string | null; narrative?: string | null }>;
 };
+export type AttachmentUploadInput = {
+  file: File;
+  reportItemId?: string;
+  requirementId?: string;
+};
 export type Paginated<T> = { data: T[]; meta: ApiMeta; pagination: Pagination };
 
 type ApiErrorPayload = { error?: { code?: string; message?: string; fields?: ApiFieldError[] } };
@@ -245,6 +250,76 @@ async function envelope<T>(path: string, options: Options = {}) {
 const request = async <T>(path: string, options: Options = {}) =>
   (await envelope<T>(path, options)).data;
 
+async function upload<T>(
+  path: string,
+  body: FormData,
+  onProgress: (progress: number) => void,
+): Promise<T> {
+  const url = `${root}${path.startsWith("/") ? path : `/${path}`}`;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.withCredentials = true;
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+    xhr.onerror = () => reject(new ApiClientError(0, "Server belum dapat dihubungi.", "NETWORK_ERROR"));
+    xhr.onload = () => {
+      let payload: unknown = null;
+      try {
+        payload = xhr.responseText ? (JSON.parse(xhr.responseText) as unknown) : null;
+      } catch {}
+      if (xhr.status < 200 || xhr.status >= 300) {
+        const error = isRecord(payload) ? (payload.error as ApiErrorPayload["error"]) : undefined;
+        reject(
+          new ApiClientError(
+            xhr.status,
+            error?.message ?? "Permintaan belum dapat diproses.",
+            error?.code ?? "API_ERROR",
+            error?.fields ?? [],
+          ),
+        );
+        return;
+      }
+      onProgress(100);
+      resolve(isRecord(payload) && "data" in payload ? (payload.data as T) : (payload as T));
+    };
+    xhr.send(body);
+  });
+}
+
+async function download(path: string, filename: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${root}${path.startsWith("/") ? path : `/${path}`}`, {
+      credentials: "include",
+    });
+  } catch {
+    throw new ApiClientError(0, "Server belum dapat dihubungi.", "NETWORK_ERROR");
+  }
+  if (!response.ok) {
+    let payload: unknown = null;
+    try {
+      payload = await response.json();
+    } catch {}
+    const error = isRecord(payload) ? (payload.error as ApiErrorPayload["error"]) : undefined;
+    throw new ApiClientError(
+      response.status,
+      error?.message ?? "File belum dapat diunduh.",
+      error?.code ?? "API_ERROR",
+      error?.fields ?? [],
+    );
+  }
+  const objectUrl = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
 async function list<T>(
   path: string,
   params: Record<string, QueryValue> = {},
@@ -327,5 +402,19 @@ export const apiClient = {
     create: (body: ReportCreateInput) => request<Report>("/reports", { method: "POST", body }),
     update: (id: string, body: ReportUpdateInput) =>
       request<Report>(`/reports/${id}`, { method: "PATCH", body }),
+    validateCompleteness: (id: string) =>
+      request<{ valid: true }>(`/reports/${id}/completeness`, { method: "GET", cache: "no-store" }),
+  },
+  attachments: {
+    upload: (id: string, body: AttachmentUploadInput, onProgress: (progress: number) => void) => {
+      const formData = new FormData();
+      formData.set("file", body.file);
+      if (body.reportItemId) formData.set("reportItemId", body.reportItemId);
+      if (body.requirementId) formData.set("requirementId", body.requirementId);
+      return upload<ReportAttachment>(`/reports/${id}/attachments`, formData, onProgress);
+    },
+    download: (attachment: Pick<ReportAttachment, "id" | "originalName">) =>
+      download(`/attachments/${attachment.id}/download`, attachment.originalName),
+    delete: (id: string) => request<{ id: string }>(`/attachments/${id}`, { method: "DELETE" }),
   },
 };

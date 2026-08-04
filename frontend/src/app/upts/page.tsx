@@ -12,7 +12,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -80,8 +87,18 @@ export default function UPTsPage() {
     setSaving(true);
     setFormError(null);
     try {
-      if (editing) await apiClient.upts.update(editing.id, { code: form.code.trim(), name: form.name.trim(), active: form.active });
-      else await apiClient.upts.create({ code: form.code.trim(), name: form.name.trim(), active: form.active });
+      if (editing)
+        await apiClient.upts.update(editing.id, {
+          code: form.code.trim(),
+          name: form.name.trim(),
+          active: form.active,
+        });
+      else
+        await apiClient.upts.create({
+          code: form.code.trim(),
+          name: form.name.trim(),
+          active: form.active,
+        });
       setDialogOpen(false);
       await load();
     } catch (saveError) {
@@ -105,9 +122,17 @@ export default function UPTsPage() {
   }
 
   const columns: DataTableColumn<UPT>[] = [
-    { id: "code", header: "Kode", cell: (row) => <span className="font-semibold">{row.code}</span> },
+    {
+      id: "code",
+      header: "Kode",
+      cell: (row) => <span className="font-semibold">{row.code}</span>,
+    },
     { id: "name", header: "Nama UPT", cell: (row) => row.name },
-    { id: "status", header: "Status", cell: (row) => <StatusBadge status={row.active ? "ACTIVE" : "INACTIVE"} /> },
+    {
+      id: "status",
+      header: "Status",
+      cell: (row) => <StatusBadge status={row.active ? "ACTIVE" : "INACTIVE"} />,
+    },
     {
       id: "actions",
       header: "Aksi",
@@ -115,10 +140,15 @@ export default function UPTsPage() {
       cell: (row) => (
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => openForm(row)}>
-            <Edit3 />Edit
+            <Edit3 />
+            Edit
           </Button>
           <ConfirmDialog
-            trigger={<Button type="button" variant={row.active ? "destructive" : "outline"} size="sm">{row.active ? "Nonaktifkan" : "Aktifkan"}</Button>}
+            trigger={
+              <Button type="button" variant={row.active ? "destructive" : "outline"} size="sm">
+                {row.active ? "Nonaktifkan" : "Aktifkan"}
+              </Button>
+            }
             title={`${row.active ? "Nonaktifkan" : "Aktifkan"} UPT?`}
             description={`${row.code} — ${row.name} akan ${row.active ? "dinonaktifkan" : "diaktifkan"}.`}
             confirmLabel={row.active ? "Nonaktifkan" : "Aktifkan"}
@@ -136,10 +166,15 @@ export default function UPTsPage() {
       {!allowed ? (
         <section className="rounded-xl border bg-card p-8 text-center">
           <h1 className="text-xl font-bold">Akses ditolak</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Halaman master UPT hanya tersedia untuk Admin SIMPATIK.</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Halaman master UPT hanya tersedia untuk Admin SIMPATIK.
+          </p>
         </section>
       ) : denied ? (
-        <section className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center" role="alert">
+        <section
+          className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center"
+          role="alert"
+        >
           <h1 className="text-xl font-bold text-destructive">Akses ditolak</h1>
           <p className="mt-2 text-sm text-destructive">Anda tidak memiliki izin mengelola UPT.</p>
         </section>
@@ -149,48 +184,132 @@ export default function UPTsPage() {
             eyebrow="Master data"
             title="UPT"
             description="Kelola kode, nama, dan status operasional unit pelaksana teknis."
-            actions={<Button type="button" onClick={() => openForm()}><Plus />Tambah UPT</Button>}
+            actions={
+              <Button type="button" onClick={() => openForm()}>
+                <Plus />
+                Tambah UPT
+              </Button>
+            }
           />
           <FilterBar
-            onSubmit={(event) => { event.preventDefault(); setPage(1); setFilters({ search: search.trim(), active }); }}
-            onReset={() => { setSearch(""); setActive(""); setPage(1); setFilters({ search: "", active: "" }); }}
+            onSubmit={(event) => {
+              event.preventDefault();
+              setPage(1);
+              setFilters({ search: search.trim(), active });
+            }}
+            onReset={() => {
+              setSearch("");
+              setActive("");
+              setPage(1);
+              setFilters({ search: "", active: "" });
+            }}
           >
             <FormField id="upt-search" label="Cari UPT">
               <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                <Input id="upt-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Kode atau nama UPT" className="pl-9" />
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="upt-search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Kode atau nama UPT"
+                  className="pl-9"
+                />
               </div>
             </FormField>
             <FormField id="upt-active" label="Status">
-              <Select id="upt-active" value={active} onChange={(event) => setActive(event.target.value)}>
+              <Select
+                id="upt-active"
+                value={active}
+                onChange={(event) => setActive(event.target.value)}
+              >
                 <option value="">Semua status</option>
                 <option value="true">Aktif</option>
                 <option value="false">Nonaktif</option>
               </Select>
             </FormField>
           </FilterBar>
-          <DataTable columns={columns} data={rows} getRowId={(row) => row.id} caption="Daftar UPT" loading={loading} loadingLabel="Memuat daftar UPT..." error={error ?? undefined} onRetry={() => void load()} pagination={pagination} onPageChange={setPage} emptyTitle="UPT belum tersedia" emptyDescription="Belum ada UPT yang sesuai dengan filter saat ini." />
+          <DataTable
+            columns={columns}
+            data={rows}
+            getRowId={(row) => row.id}
+            caption="Daftar UPT"
+            loading={loading}
+            loadingLabel="Memuat daftar UPT..."
+            error={error ?? undefined}
+            onRetry={() => void load()}
+            pagination={pagination}
+            onPageChange={setPage}
+            emptyTitle="UPT belum tersedia"
+            emptyDescription="Belum ada UPT yang sesuai dengan filter saat ini."
+          />
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>{editing ? "Ubah UPT" : "Tambah UPT"}</DialogTitle>
-                <DialogDescription>Isi metadata UPT tanpa menghapus histori laporan.</DialogDescription>
+                <DialogDescription>
+                  Isi metadata UPT tanpa menghapus histori laporan.
+                </DialogDescription>
               </DialogHeader>
               <Form onSubmit={save} noValidate>
-                {formError ? <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">{formError}</p> : null}
+                {formError ? (
+                  <p
+                    className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                    role="alert"
+                  >
+                    {formError}
+                  </p>
+                ) : null}
                 <FormField id="upt-code" label="Kode" required>
-                  <Input id="upt-code" value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} required disabled={saving} />
+                  <Input
+                    id="upt-code"
+                    value={form.code}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, code: event.target.value }))
+                    }
+                    required
+                    disabled={saving}
+                  />
                 </FormField>
                 <FormField id="upt-name" label="Nama UPT" required>
-                  <Input id="upt-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required disabled={saving} />
+                  <Input
+                    id="upt-name"
+                    value={form.name}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, name: event.target.value }))
+                    }
+                    required
+                    disabled={saving}
+                  />
                 </FormField>
-                <label className="flex items-center gap-3 text-sm font-medium" htmlFor="upt-form-active">
-                  <Checkbox id="upt-form-active" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} disabled={saving} />
+                <label
+                  className="flex items-center gap-3 text-sm font-medium"
+                  htmlFor="upt-form-active"
+                >
+                  <Checkbox
+                    id="upt-form-active"
+                    checked={form.active}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, active: event.target.checked }))
+                    }
+                    disabled={saving}
+                  />
                   UPT aktif
                 </label>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button>
-                  <Button type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                    disabled={saving}
+                  >
+                    Batal
+                  </Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "Menyimpan..." : "Simpan"}
+                  </Button>
                 </DialogFooter>
               </Form>
             </DialogContent>

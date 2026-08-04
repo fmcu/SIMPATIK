@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Download, Pencil } from "lucide-react";
 
 import { AppShell } from "@/components/shared/app-shell";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LoadingState } from "@/components/shared/loading-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { ApiClientError, apiClient, type Report } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
+import { ApiClientError, apiClient, type Report, type ReportAttachment } from "@/lib/api-client";
 import { dateLabel, errorMessage } from "@/lib/admin-helpers";
 import { useRequireSession } from "@/lib/auth-provider";
 
@@ -32,6 +33,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     void params.then(({ id }) => setReportId(id));
@@ -61,6 +63,17 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   const canEdit =
     auth.session?.user.role === "PETUGAS_UPT" &&
     (report?.status === "DRAFT" || report?.status === "REVISION_REQUIRED");
+
+  async function downloadAttachment(attachment: ReportAttachment) {
+    setDownloading(attachment.id);
+    try {
+      await apiClient.attachments.download(attachment);
+    } catch (downloadError) {
+      setError(errorMessage(downloadError));
+    } finally {
+      setDownloading(null);
+    }
+  }
 
   return (
     <AppShell>
@@ -171,13 +184,25 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
               {report.attachments?.length ? (
                 <ul className="mt-4 space-y-3">
                   {report.attachments.map((attachment) => (
-                    <li key={attachment.id} className="rounded-lg border p-3">
-                      <p className="font-medium">{attachment.originalName}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {attachment.mimeType} · {attachment.size.toLocaleString("id-ID")} byte ·{" "}
-                        {dateTimeLabel(attachment.createdAt)}
-                      </p>
-                    </li>
+                      <li key={attachment.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{attachment.originalName}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {attachment.mimeType} · {attachment.size.toLocaleString("id-ID")} byte ·{" "}
+                            {dateTimeLabel(attachment.createdAt)}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={downloading === attachment.id}
+                          onClick={() => void downloadAttachment(attachment)}
+                        >
+                          <Download />
+                          {downloading === attachment.id ? "Mengunduh..." : "Unduh"}
+                        </Button>
+                      </li>
                   ))}
                 </ul>
               ) : (

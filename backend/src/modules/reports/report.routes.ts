@@ -5,6 +5,10 @@ import { enforceUptScope, requireRole, requireSession } from "../../middleware/a
 import { asyncHandler, validate } from "../shared/http.js";
 import { ReportController } from "./report.controller.js";
 import { createReportRepository } from "./report.repository.js";
+import { createReportAttachmentRouter } from "../attachments/attachment.routes.js";
+import { createDocumentRepository } from "../documents/document.repository.js";
+import { ReportCompletenessService } from "./report-completeness.service.js";
+import { ReportDocumentValidator } from "../documents/document.validation.js";
 import {
   reportCreateSchema,
   reportIdParamsSchema,
@@ -23,7 +27,7 @@ const reportReaders = [
 
 export type ReportControllerHandlers = Pick<
   ReportController,
-  "list" | "create" | "detail" | "update"
+  "list" | "create" | "detail" | "update" | "validateCompleteness"
 >;
 
 type ReportRouterDependencies = {
@@ -35,7 +39,12 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
   const router = Router();
   const controller =
     dependencies.controller ??
-    new ReportController(new ReportService(createReportRepository(prisma)));
+    new ReportController(
+      new ReportService(
+        createReportRepository(prisma),
+        new ReportCompletenessService(new ReportDocumentValidator(createDocumentRepository(prisma))),
+      ),
+    );
   const session = dependencies.requireSession ?? requireSession;
 
   router.get(
@@ -62,6 +71,15 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
     validate(reportIdParamsSchema, "params"),
     asyncHandler(controller.detail),
   );
+  router.get(
+    "/:id/completeness",
+    session,
+    requireRole("KOORDINATOR_UPT", "PETUGAS_UPT"),
+    enforceUptScope,
+    validate(reportIdParamsSchema, "params"),
+    asyncHandler(controller.validateCompleteness),
+  );
+  router.use("/:id/attachments", createReportAttachmentRouter());
   router.patch(
     "/:id",
     session,

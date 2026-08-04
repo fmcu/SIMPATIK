@@ -224,22 +224,22 @@ Task selesai jika:
 
 ### Validasi laporan
 
-- [ ] **BE-301 [P0]** Buat schema validasi payload laporan.
+- [x] **BE-301 [P0]** Buat schema validasi payload laporan.
 - [ ] **BE-302 [P0]** Buat pemeriksaan kelengkapan sebelum submit.
-- [ ] **BE-303 [P0]** Kembalikan field error yang dapat dipetakan ke form.
-- [ ] **FE-301 [P0]** Tampilkan error per field dan ringkasan error.
+- [x] **BE-303 [P0]** Kembalikan field error yang dapat dipetakan ke form.
+- [x] **FE-301 [P0]** Tampilkan error per field dan ringkasan error.
 - [ ] **FE-302 [P0]** Buat halaman/step konfirmasi sebelum pengajuan.
 
 ### Dokumen
 
-- [ ] **OPS-201 [P0]** Tentukan driver dan lokasi private file storage.
-- [ ] **DB-301 [P0]** Buat model Attachment.
-- [ ] **BE-304 [P0]** Buat upload endpoint dengan batas ukuran dan allowlist tipe.
-- [ ] **BE-305 [P0]** Gunakan storage key acak dan simpan metadata file.
-- [ ] **BE-306 [P0]** Buat download endpoint dengan authorization.
-- [ ] **BE-307 [P0]** Buat delete endpoint hanya untuk laporan yang masih dapat diedit.
-- [ ] **FE-303 [P0]** Buat komponen upload, progress, error, daftar file, dan hapus.
-- [ ] **QA-301 [P0]** Test tipe/ukuran file tidak valid dan akses download lintas UPT.
+- [x] **OPS-201 [P0]** Tentukan driver dan lokasi private file storage.
+- [x] **DB-301 [P0]** Buat model Attachment.
+- [x] **BE-304 [P0]** Buat upload endpoint dengan batas ukuran dan allowlist tipe.
+- [x] **BE-305 [P0]** Gunakan storage key acak dan simpan metadata file.
+- [x] **BE-306 [P0]** Buat download endpoint dengan authorization.
+- [x] **BE-307 [P0]** Buat delete endpoint hanya untuk laporan yang masih dapat diedit.
+- [x] **FE-303 [P0]** Buat komponen upload, progress, error, daftar file, dan hapus.
+- [x] **QA-301 [P0]** Test tipe/ukuran file tidak valid dan akses download lintas UPT.
 
 ### Pengajuan
 

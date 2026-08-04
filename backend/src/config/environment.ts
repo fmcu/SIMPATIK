@@ -15,7 +15,7 @@ const environmentSchema = z
     BETTER_AUTH_URL: z.string().url().default("http://localhost:4000"),
     BETTER_AUTH_SECRET: z.string().optional(),
     TRUSTED_ORIGINS: z.string().default("http://localhost:3000"),
-    STORAGE_DRIVER: z.string().default("local"),
+    STORAGE_DRIVER: z.string().min(1).default("local"),
     STORAGE_BUCKET: z.string().min(1).default("./storage"),
     MAX_UPLOAD_SIZE: z.coerce.number().int().positive().default(10_485_760),
   })

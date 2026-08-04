@@ -1,11 +1,15 @@
 import { AppError } from "../../middleware/error.js";
+import { ReportCompletenessService } from "./report-completeness.service.js";
 import type { ReportRepository, ReportDetail } from "./report.repository.js";
 import type { ReportCreateInput, ReportListInput, ReportUpdateInput } from "./report.types.js";
 
 const editableStatuses = new Set(["DRAFT", "REVISION_REQUIRED"]);
 
 export class ReportService {
-  constructor(private readonly repository: ReportRepository) {}
+  constructor(
+    private readonly repository: ReportRepository,
+    private readonly completeness?: ReportCompletenessService,
+  ) {}
 
   list(input: ReportListInput) {
     return this.repository.list({
@@ -48,6 +52,18 @@ export class ReportService {
       ...input,
       indicatorIds: context.period.indicators.map((indicator) => indicator.id),
     });
+  }
+
+  async validateCompleteness(id: string, uptScopeId?: string): Promise<{ valid: true }> {
+    if (!this.completeness) {
+      throw new AppError(500, "INTERNAL_ERROR", "Layanan validasi laporan belum tersedia.");
+    }
+    const report = await this.detail(id, uptScopeId);
+    const fields = await this.completeness.validate(report);
+    if (fields.length) {
+      throw new AppError(400, "VALIDATION_ERROR", "Laporan belum lengkap.", fields);
+    }
+    return { valid: true };
   }
 
   async update(id: string, input: ReportUpdateInput): Promise<ReportDetail> {
