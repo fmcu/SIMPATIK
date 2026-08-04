@@ -1,0 +1,236 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PIMPINAN
+  PRODUCT_OWNER
+  PETUGAS_KANWIL
+  KOORDINATOR_UPT
+  PETUGAS_UPT
+  ADMIN_SIMPATIK
+  SYSTEM_ADMIN
+}
+
+enum PeriodStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  REVISION_REQUIRED
+  REVIEWED
+  APPROVED
+}
+
+model User {
+  id            String       @id
+  name          String
+  email         String       @unique
+  emailVerified Boolean      @default(false)
+  image         String?
+  role          Role         @default(PETUGAS_UPT)
+  uptId         String?
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  upt           UPT?         @relation(fields: [uptId], references: [id], onDelete: Restrict)
+  sessions      Session[]
+  accounts      Account[]
+  reports       Report[]      @relation("ReportCreatedBy")
+  attachments   Attachment[]
+  comments      ReviewComment[]
+  histories     StatusHistory[]
+  auditLogs     AuditLog[]
+
+  @@index([uptId])
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([identifier, value])
+}
+
+model UPT {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  reports   Report[]
+}
+
+model ReportingPeriod {
+  id        String       @id @default(cuid())
+  name      String
+  startDate DateTime
+  dueDate   DateTime
+  status    PeriodStatus @default(DRAFT)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  indicators Indicator[]
+  reports   Report[]
+
+  @@index([status, dueDate])
+}
+
+model Indicator {
+  id          String          @id @default(cuid())
+  periodId    String
+  code        String
+  name        String
+  required    Boolean         @default(false)
+  order       Int
+  period      ReportingPeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  reportItems ReportItem[]
+
+  @@unique([periodId, code])
+  @@index([periodId, order])
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  uptId       String
+  periodId    String
+  reportType  String
+  status      ReportStatus @default(DRAFT)
+  version     Int          @default(1)
+  createdById String
+  submittedAt DateTime?
+  reviewedAt  DateTime?
+  approvedAt  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  upt         UPT          @relation(fields: [uptId], references: [id], onDelete: Restrict)
+  period      ReportingPeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  createdBy   User         @relation("ReportCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  items       ReportItem[]
+  attachments Attachment[]
+  comments    ReviewComment[]
+  histories   StatusHistory[]
+
+  @@unique([uptId, periodId, reportType])
+  @@index([periodId, status])
+  @@index([uptId, periodId])
+}
+
+model ReportItem {
+  id          String     @id @default(cuid())
+  reportId    String
+  indicatorId String
+  value       String?
+  narrative   String?
+  report      Report     @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  indicator   Indicator  @relation(fields: [indicatorId], references: [id], onDelete: Restrict)
+  attachments Attachment[]
+
+  @@unique([reportId, indicatorId])
+  @@index([indicatorId])
+}
+
+model Attachment {
+  id           String      @id @default(cuid())
+  reportId     String
+  reportItemId String?
+  storageKey   String      @unique
+  originalName String
+  mimeType     String
+  size         Int
+  uploadedById String
+  createdAt    DateTime    @default(now())
+  report       Report      @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  reportItem   ReportItem? @relation(fields: [reportItemId], references: [id], onDelete: Restrict)
+  uploadedBy   User        @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([reportId])
+}
+
+model ReviewComment {
+  id        String   @id @default(cuid())
+  reportId  String
+  message   String
+  createdById String
+  createdAt DateTime @default(now())
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  createdBy User     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([reportId, createdAt])
+}
+
+model StatusHistory {
+  id         String       @id @default(cuid())
+  reportId   String
+  fromStatus ReportStatus?
+  toStatus   ReportStatus
+  actorId    String
+  note       String?
+  createdAt  DateTime     @default(now())
+  report     Report       @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  actor      User         @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([reportId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+}

@@ -1,0 +1,22 @@
+{
+  "name": "simpatik",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter frontend --filter backend dev",
+    "lint": "pnpm --filter frontend lint && pnpm --filter backend lint && pnpm --filter @simpatik/contracts lint",
+    "type-check": "pnpm --filter @simpatik/contracts build && pnpm --filter backend type-check && pnpm --filter frontend type-check",
+    "test": "pnpm --filter @simpatik/contracts test && pnpm --filter backend test",
+    "build": "pnpm --filter @simpatik/contracts build && pnpm --filter backend build && pnpm --filter frontend build",
+    "format": "prettier --write \"backend/**/*.{ts,json}\" \"frontend/**/*.{ts,tsx,css,json,mjs}\" \"packages/**/*.{ts,json}\" \"*.{json,mjs,yaml,yml}\"",
+    "format:check": "prettier --check \"backend/**/*.{ts,json}\" \"frontend/**/*.{ts,tsx,css,json,mjs}\" \"packages/**/*.{ts,json}\" \"*.{json,mjs,yaml,yml}\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "eslint": "^9.31.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.6.2",
+    "typescript-eslint": "^8.38.0"
+  }
+}
