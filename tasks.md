@@ -94,14 +94,14 @@ Task selesai jika:
 
 - [x] **FE-001 [P0]** Inisialisasi Next.js App Router dengan TypeScript.
 - [x] **FE-002 [P0]** Pasang Tailwind CSS dan inisialisasi shadcn/ui pada aplikasi Next.js.
-- [ ] **FE-003 [P0]** Buat design tokens: warna, typography, spacing, radius, dan status.
-- [ ] **FE-004 [P0]** Buat layout aplikasi, sidebar, header, breadcrumb, dan responsive shell.
-- [ ] **FE-005 [P0]** Tambahkan primitive shadcn/ui: button, input, select, textarea, table, badge, dialog, dropdown, sheet, skeleton, toast, dan field.
-- [ ] **FE-006 [P0]** Tetapkan struktur `components/ui`, `components/shared`, dan `features/*/components`.
-- [ ] **FE-007 [P0]** Buat reusable PageHeader, StatusBadge, ConfirmDialog, EmptyState, LoadingState, dan PermissionGate.
-- [ ] **FE-008 [P0]** Buat reusable DataTable, FilterBar, FormField, FileUpload, dan DashboardCard dengan props bertipe.
-- [ ] **FE-009 [P0]** Buat halaman katalog internal untuk memeriksa variasi dan state komponen.
-- [ ] **FE-010 [P0]** Verifikasi keyboard navigation, focus state, label, dan error state komponen dasar.
+- [x] **FE-003 [P0]** Buat design tokens: warna, typography, spacing, radius, dan status.
+- [x] **FE-004 [P0]** Buat layout aplikasi, sidebar, header, breadcrumb, dan responsive shell.
+- [x] **FE-005 [P0]** Tambahkan primitive shadcn/ui: button, input, select, textarea, table, badge, dialog, dropdown, sheet, skeleton, toast, dan field.
+- [x] **FE-006 [P0]** Tetapkan struktur `components/ui`, `components/shared`, dan `features/*/components`.
+- [x] **FE-007 [P0]** Buat reusable PageHeader, StatusBadge, ConfirmDialog, EmptyState, LoadingState, dan PermissionGate.
+- [x] **FE-008 [P0]** Buat reusable DataTable, FilterBar, FormField, FileUpload, dan DashboardCard dengan props bertipe.
+- [x] **FE-009 [P0]** Buat halaman katalog internal untuk memeriksa variasi dan state komponen.
+- [x] **FE-010 [P0]** Verifikasi keyboard navigation, focus state, label, dan error state komponen dasar.
 
 ### Backend foundation
 
