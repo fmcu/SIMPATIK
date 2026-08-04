@@ -1,25 +1,20 @@
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 
 export type ReportStatus = "DRAFT" | "SUBMITTED" | "REVISION_REQUIRED" | "REVIEWED" | "APPROVED";
+export type Status = ReportStatus | "ACTIVE" | "CLOSED" | "INACTIVE" | "PENDING" | "REJECTED";
 
-const statusLabels: Record<ReportStatus, string> = {
-  DRAFT: "Draf",
-  SUBMITTED: "Diajukan",
-  REVISION_REQUIRED: "Perlu revisi",
-  REVIEWED: "Selesai direviu",
-  APPROVED: "Disetujui",
+const statusLabels: Record<Status, string> = {
+  DRAFT: "Draf", SUBMITTED: "Diajukan", REVISION_REQUIRED: "Perlu revisi", REVIEWED: "Selesai direviu", APPROVED: "Disetujui",
+  ACTIVE: "Aktif", CLOSED: "Ditutup", INACTIVE: "Nonaktif", PENDING: "Menunggu pengesahan", REJECTED: "Ditolak",
 };
 
-const statusVariants: Record<ReportStatus, BadgeProps["variant"]> = {
-  DRAFT: "secondary",
-  SUBMITTED: "info",
-  REVISION_REQUIRED: "warning",
-  REVIEWED: "success",
-  APPROVED: "default",
+const statusVariants: Record<Status, BadgeProps["variant"]> = {
+  DRAFT: "secondary", SUBMITTED: "info", REVISION_REQUIRED: "warning", REVIEWED: "success", APPROVED: "default",
+  ACTIVE: "success", CLOSED: "secondary", INACTIVE: "warning", PENDING: "secondary", REJECTED: "warning",
 };
 
 export interface StatusBadgeProps extends Omit<BadgeProps, "children"> {
-  status: ReportStatus;
+  status: Status;
   label?: string;
 }
 

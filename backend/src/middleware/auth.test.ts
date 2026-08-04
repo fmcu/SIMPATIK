@@ -97,6 +97,24 @@ test("requireRole rejects a role outside the explicit allowlist", async () => {
   assert.equal(response.body.error.code, "ROLE_NOT_ALLOWED");
 });
 
+test("administrative routes reject Product Owner", async () => {
+  const getSession = (async () => sessionFor("PRODUCT_OWNER")) as typeof auth.api.getSession;
+  const app = createProtectedApp(getSession, requireRole("ADMIN_SIMPATIK"));
+  const response = await request(app).get("/protected");
+
+  assert.equal(response.status, 403);
+  assert.equal(response.body.error.code, "ROLE_NOT_ALLOWED");
+});
+
+test("approval routes reject Admin", async () => {
+  const getSession = (async () => sessionFor("ADMIN_SIMPATIK")) as typeof auth.api.getSession;
+  const app = createProtectedApp(getSession, requireRole("PRODUCT_OWNER"));
+  const response = await request(app).get("/protected");
+
+  assert.equal(response.status, 403);
+  assert.equal(response.body.error.code, "ROLE_NOT_ALLOWED");
+});
+
 test("enforceUptScope derives the scope from session for the assigned UPT", async () => {
   const getSession = (async () => sessionFor("PETUGAS_UPT", "upt-a")) as typeof auth.api.getSession;
   const app = createProtectedApp(getSession, enforceUptScope);

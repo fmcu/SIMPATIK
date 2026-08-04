@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { failure, paginationSchema, reportStatusSchema, roleSchema, success } from "./index.js";
+import {
+  failure,
+  paginationSchema,
+  reportStatusSchema,
+  requiredDocumentCreateSchema,
+  roleSchema,
+  success,
+} from "./index.js";
 
 test("shared role and report status schemas expose canonical values", () => {
   assert.equal(roleSchema.parse("SYSTEM_ADMIN"), "SYSTEM_ADMIN");
@@ -25,4 +32,28 @@ test("pagination schema rejects unsafe page sizes", () => {
     25,
   );
   assert.throws(() => paginationSchema.parse({ page: 1, pageSize: 101, total: 0, totalPages: 0 }));
+});
+
+test("required document configuration requires an allowlisted file type", () => {
+  assert.throws(() =>
+    requiredDocumentCreateSchema.parse({
+      periodId: "period-1",
+      code: "DOC-1",
+      name: "Dokumen",
+      maxSize: 1000,
+      order: 1,
+    }),
+  );
+
+  assert.equal(
+    requiredDocumentCreateSchema.parse({
+      periodId: "period-1",
+      code: "DOC-1",
+      name: "Dokumen",
+      allowedMimeTypes: ["application/pdf"],
+      maxSize: 1000,
+      order: 1,
+    }).allowedMimeTypes[0],
+    "application/pdf",
+  );
 });

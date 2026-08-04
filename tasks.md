@@ -157,20 +157,20 @@ Task selesai jika:
 
 ### User dan UPT
 
-- [ ] **DB-101 [P0]** Finalisasi model User dan UPT.
-- [ ] **BE-101 [P0]** Buat API daftar, tambah, ubah, aktifkan, dan nonaktifkan pengguna.
-- [ ] **BE-102 [P0]** Buat API daftar dan ubah metadata UPT.
-- [ ] **FE-106 [P0]** Buat halaman manajemen pengguna.
-- [ ] **FE-107 [P0]** Buat halaman master UPT.
+- [x] **DB-101 [P0]** Finalisasi model User dan UPT.
+- [x] **BE-101 [P0]** Buat API daftar, tambah, ubah, aktifkan, dan nonaktifkan pengguna.
+- [x] **BE-102 [P0]** Buat API daftar dan ubah metadata UPT.
+- [x] **FE-106 [P0]** Buat halaman manajemen pengguna.
+- [x] **FE-107 [P0]** Buat halaman master UPT.
 - [ ] **QA-101 [P0]** Uji matriks role dan penolakan akses API langsung.
 
 ### Periode
 
-- [ ] **DB-102 [P0]** Buat model ReportingPeriod dan Indicator.
-- [ ] **BE-103 [P0]** Buat CRUD periode.
-- [ ] **BE-104 [P0]** Buat CRUD indikator dan dokumen wajib.
-- [ ] **FE-108 [P0]** Buat halaman daftar dan form periode.
-- [ ] **FE-109 [P0]** Buat halaman konfigurasi indikator.
+- [x] **DB-102 [P0]** Buat model ReportingPeriod dan Indicator.
+- [x] **BE-103 [P0]** Buat CRUD periode.
+- [x] **BE-104 [P0]** Buat CRUD indikator dan dokumen wajib.
+- [x] **FE-108 [P0]** Buat halaman daftar dan form periode.
+- [x] **FE-109 [P0]** Buat halaman konfigurasi indikator.
 
 ### Exit Minggu 2
 
