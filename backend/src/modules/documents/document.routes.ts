@@ -8,6 +8,7 @@ import { PrismaClient } from "@prisma/client";
 import type { ZodTypeAny } from "zod";
 
 import { requireRole, requireSession } from "../../middleware/auth.js";
+import { roles } from "../../middleware/permissions.js";
 import type { AuthRequest } from "../../middleware/auth.types.js";
 import type { AuditRepository } from "../shared/audit.repository.js";
 import { asyncHandler, routeParam, sendData, validate } from "../shared/http.js";
@@ -30,6 +31,7 @@ export function createDocumentRouter(
   router.get(
     "/",
     requireSession,
+    requireRole(...roles.configurationReaders),
     asyncHandler(async (request, response) => {
       sendData(response, await service.list({ periodId: routeParam(request, "id") }));
     }),
@@ -60,6 +62,7 @@ export function createDocumentMutationRouter(service: DocumentService): Router {
   router.get(
     "/:id",
     requireSession,
+    requireRole(...roles.configurationReaders),
     asyncHandler(async (request, response) => {
       sendData(response, await service.detail(routeParam(request, "id")));
     }),
@@ -67,7 +70,7 @@ export function createDocumentMutationRouter(service: DocumentService): Router {
   router.patch(
     "/:id",
     requireSession,
-    requireRole("ADMIN_SIMPATIK"),
+    requireRole(...roles.admin),
     validate(requiredDocumentUpdateSchema, "body"),
     asyncHandler(async (request, response) => {
       sendData(
@@ -83,7 +86,7 @@ export function createDocumentMutationRouter(service: DocumentService): Router {
   router.post(
     "/:id/approve",
     requireSession,
-    requireRole("PRODUCT_OWNER"),
+    requireRole(...roles.productOwner),
     validate(approvalRequestSchema, "body"),
     asyncHandler(async (request, response) => {
       sendData(

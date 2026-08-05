@@ -113,8 +113,14 @@ export class UserService {
         { field: "uptId", message: "UPT tidak ditemukan." },
       ]);
     validateAssignment(role, uptId, upt?.active);
-    const { password, ...userData } = input;
-    const user = await this.repository.update(id, { ...userData, role, uptId });
+    const user = await this.repository.update(id, {
+      ...(input.name === undefined ? {} : { name: input.name }),
+      ...(input.email === undefined ? {} : { email: input.email }),
+      role,
+      uptId,
+      ...(input.active === undefined ? {} : { active: input.active }),
+    });
+    const password = input.password;
     if (password) await this.repository.updatePassword(id, await hashPassword(password));
     await this.audit.write({
       actorId,

@@ -36,83 +36,21 @@ import {
 } from "@/components/ui/sheet";
 import { LoadingState } from "@/components/shared/loading-state";
 import { useRequireSession, type AppRole } from "@/lib/auth-provider";
+import { navigationItems } from "@/lib/role-navigation";
 import { cn } from "@/lib/utils";
 
-interface NavigationItem {
-  label: string;
-  href: string;
-  icon: typeof LayoutDashboard;
-  roles: AppRole[];
-}
-
-const navigation: NavigationItem[] = [
-  {
-    label: "Dasbor",
-    href: "/",
-    icon: LayoutDashboard,
-    roles: [
-      "PIMPINAN",
-      "PRODUCT_OWNER",
-      "PETUGAS_KANWIL",
-      "KOORDINATOR_UPT",
-      "PETUGAS_UPT",
-      "ADMIN_SIMPATIK",
-    ],
-  },
-  {
-    label: "Katalog komponen",
-    href: "/components",
-    icon: PanelLeftClose,
-    roles: [
-      "PIMPINAN",
-      "PRODUCT_OWNER",
-      "PETUGAS_KANWIL",
-      "KOORDINATOR_UPT",
-      "PETUGAS_UPT",
-      "ADMIN_SIMPATIK",
-      "SYSTEM_ADMIN",
-    ],
-  },
-  {
-    label: "Laporan",
-    href: "/reports",
-    icon: ShieldCheck,
-    roles: ["PIMPINAN", "PRODUCT_OWNER", "PETUGAS_KANWIL", "KOORDINATOR_UPT", "PETUGAS_UPT"],
-  },
-  {
-    label: "Validasi laporan",
-    href: "/reports/validation",
-    icon: CheckCircle2,
-    roles: ["KOORDINATOR_UPT"],
-  },
-  {
-    label: "Reviu Kanwil",
-    href: "/reports/review",
-    icon: CheckCircle2,
-    roles: ["PETUGAS_KANWIL"],
-  },
-  {
-    label: "Persetujuan laporan",
-    href: "/reports/approval",
-    icon: CheckCircle2,
-    roles: ["PRODUCT_OWNER"],
-  },
-
-  { label: "Pengguna", href: "/users", icon: Users, roles: ["ADMIN_SIMPATIK"] },
-  { label: "UPT", href: "/upts", icon: Building2, roles: ["ADMIN_SIMPATIK"] },
-  {
-    label: "Periode",
-    href: "/periods",
-    icon: CalendarDays,
-    roles: ["ADMIN_SIMPATIK", "PRODUCT_OWNER"],
-  },
-  {
-    label: "Pengaturan",
-    href: "/settings",
-    icon: Settings2,
-    roles: ["ADMIN_SIMPATIK", "SYSTEM_ADMIN"],
-  },
-];
+const navigationIcons = {
+  dashboard: LayoutDashboard,
+  components: PanelLeftClose,
+  reports: ShieldCheck,
+  validation: CheckCircle2,
+  review: CheckCircle2,
+  approval: CheckCircle2,
+  users: Users,
+  upts: Building2,
+  periods: CalendarDays,
+  settings: Settings2,
+};
 
 const roleLabels: Record<AppRole, string> = {
   PIMPINAN: "Pimpinan",
@@ -126,12 +64,12 @@ const roleLabels: Record<AppRole, string> = {
 
 function NavigationLinks({ role, onNavigate }: { role: AppRole; onNavigate?: () => void }) {
   const pathname = usePathname();
-  const visibleNavigation = navigation.filter((item) => item.roles.includes(role));
+  const visibleNavigation = navigationItems.filter((item) => item.roles.includes(role));
 
   return (
     <nav aria-label="Navigasi utama" className="space-y-1">
       {visibleNavigation.map((item) => {
-        const Icon = item.icon;
+        const Icon = navigationIcons[item.icon];
         const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
         return (
           <Link

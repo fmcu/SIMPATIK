@@ -70,6 +70,7 @@ const reportDetailSelect = Prisma.validator<Prisma.ReportSelect>()({
   },
   histories: {
     orderBy: { createdAt: "asc" },
+    take: 100,
     select: {
       id: true,
       fromStatus: true,
@@ -103,6 +104,21 @@ export interface ReportRepository {
     uptScopeId?: string | undefined;
   }): Promise<{ items: ReportListItem[]; total: number }>;
   findById(id: string, uptScopeId?: string): Promise<ReportDetail | null>;
+  history(
+    id: string,
+    uptScopeId: string | undefined,
+    pagination: { skip: number; take: number },
+  ): Promise<{
+    items: Array<{
+      id: string;
+      fromStatus: ReportStatus | null;
+      toStatus: ReportStatus;
+      note: string | null;
+      createdAt: Date;
+      actor: { id: string; name: string };
+    }>;
+    total: number;
+  }>;
   findCreationContext(periodId: string, uptId: string): Promise<CreationContext>;
   exists(uptId: string, periodId: string, reportType: string): Promise<boolean>;
   createDraft(input: ReportCreateInput & { indicatorIds: string[] }): Promise<ReportDetail>;
@@ -169,6 +185,27 @@ export function createReportRepository(database: PrismaClient): ReportRepository
         where: whereForScope(id, uptScopeId),
         select: reportDetailSelect,
       }),
+    async history(id, uptScopeId, pagination) {
+      const where = { reportId: id, ...(uptScopeId ? { report: { uptId: uptScopeId } } : {}) };
+      const [items, total] = await Promise.all([
+        database.statusHistory.findMany({
+          where,
+          skip: pagination.skip,
+          take: pagination.take,
+          orderBy: { createdAt: "asc" },
+          select: {
+            id: true,
+            fromStatus: true,
+            toStatus: true,
+            note: true,
+            createdAt: true,
+            actor: { select: { id: true, name: true } },
+          },
+        }),
+        database.statusHistory.count({ where }),
+      ]);
+      return { items, total };
+    },
     async findCreationContext(periodId, uptId) {
       const [period, upt] = await Promise.all([
         database.reportingPeriod.findUnique({

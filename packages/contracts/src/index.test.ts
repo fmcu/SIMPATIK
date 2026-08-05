@@ -7,6 +7,7 @@ import {
   reportStatusSchema,
   requiredDocumentCreateSchema,
   roleSchema,
+  userUpdateSchema,
   success,
 } from "./index.js";
 
@@ -32,6 +33,18 @@ test("pagination schema rejects unsafe page sizes", () => {
     25,
   );
   assert.throws(() => paginationSchema.parse({ page: 1, pageSize: 101, total: 0, totalPages: 0 }));
+});
+
+test("mutation schemas reject mass-assignment fields", () => {
+  assert.throws(() =>
+    userUpdateSchema.parse({
+      name: "Pengguna",
+      role: "ADMIN_SIMPATIK",
+      active: true,
+      emailVerified: true,
+      sessions: [],
+    }),
+  );
 });
 
 test("required document configuration requires an allowlisted file type", () => {

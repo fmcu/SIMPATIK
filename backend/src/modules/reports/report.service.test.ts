@@ -59,6 +59,7 @@ function repository(overrides: Partial<ReportRepository> = {}): ReportRepository
   return {
     list: async () => ({ items: [] as ReportListItem[], total: 0 }),
     findById: async () => report(),
+    history: async () => ({ items: [], total: 0 }),
     findCreationContext: async () => ({
       period: { id: "period-1", status: "ACTIVE", indicators: [{ id: "indicator-1" }] },
       upt: { id: "upt-a" },
@@ -158,6 +159,25 @@ test("report detail forwards UPT scope to repository", async () => {
     (error: unknown) => error instanceof AppError && error.code === "NOT_FOUND",
   );
   assert.equal(receivedScope, "upt-a");
+});
+
+test("report history forwards pagination and UPT scope", async () => {
+  let received: Parameters<ReportRepository["history"]>[2] | undefined;
+  let receivedScope: string | undefined;
+  const service = new ReportService(
+    repository({
+      history: async (_id, scope, pagination) => {
+        receivedScope = scope;
+        received = pagination;
+        return { items: [], total: 0 };
+      },
+    }),
+  );
+
+  await service.history("report-1", { page: 2, pageSize: 10, uptScopeId: "upt-a" });
+
+  assert.equal(receivedScope, "upt-a");
+  assert.deepEqual(received, { skip: 10, take: 10 });
 });
 
 test("report list forwards pagination, filters, and UPT scope", async () => {

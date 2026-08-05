@@ -105,6 +105,18 @@ export class ReportController {
     );
   };
 
+  history = async (request: Request, response: Response): Promise<void> => {
+    const query = request.query as unknown as { page: number; pageSize: number };
+    const result = await this.service.history(routeParam(request, "id"), {
+      page: query.page,
+      pageSize: query.pageSize,
+      ...((request as AuthRequest).uptScopeId
+        ? { uptScopeId: (request as AuthRequest).uptScopeId }
+        : {}),
+    });
+    sendData(response, result.items, paginationMeta(query.page, query.pageSize, result.total));
+  };
+
   update = async (request: Request, response: Response): Promise<void> => {
     const authRequest = request as AuthRequest;
     const uptScopeId = authRequest.uptScopeId;

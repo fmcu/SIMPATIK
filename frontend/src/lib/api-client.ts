@@ -150,6 +150,8 @@ export type AttachmentUploadInput = {
 };
 export type Paginated<T> = { data: T[]; meta: ApiMeta; pagination: Pagination };
 export type DashboardQuery = {
+  page?: number;
+  pageSize?: number;
   periodId?: string;
   uptId?: string;
   status?: ReportStatus;
@@ -176,6 +178,7 @@ export type DashboardByUpt = {
   status: DashboardUptStatus[];
   notSent: Array<Pick<UPT, "id" | "code" | "name">>;
   late: Array<Pick<UPT, "id" | "code" | "name">>;
+  pagination?: Pagination;
 };
 
 type ApiErrorPayload = { error?: { code?: string; message?: string; fields?: ApiFieldError[] } };
@@ -429,6 +432,8 @@ export const apiClient = {
   reports: {
     list: (params: Record<string, QueryValue> = {}) => list<Report>("/reports", params),
     get: (id: string) => request<Report>(`/reports/${id}`, { method: "GET", cache: "no-store" }),
+    history: (id: string, params: { page?: number; pageSize?: number } = {}) =>
+      list<ReportHistory>(`/reports/${id}/history`, params),
     create: (body: ReportCreateInput) => request<Report>("/reports", { method: "POST", body }),
     update: (id: string, body: ReportUpdateInput) =>
       request<Report>(`/reports/${id}`, { method: "PATCH", body }),

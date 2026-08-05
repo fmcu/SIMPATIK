@@ -1,22 +1,27 @@
 import { z } from "zod";
 import { paginationQuerySchema, reportStatusSchema } from "@simpatik/contracts";
 
-const reportItemInputSchema = z.object({
-  indicatorId: z.string().trim().min(1),
-  value: z.string().trim().max(10_000).nullable().optional(),
-  narrative: z.string().trim().max(20_000).nullable().optional(),
-});
+const reportItemInputSchema = z
+  .object({
+    indicatorId: z.string().trim().min(1),
+    value: z.string().trim().max(10_000).nullable().optional(),
+    narrative: z.string().trim().max(20_000).nullable().optional(),
+  })
+  .strict();
 
-export const reportCreateSchema = z.object({
-  periodId: z.string().trim().min(1),
-  reportType: z.string().trim().min(1).max(100),
-});
+export const reportCreateSchema = z
+  .object({
+    periodId: z.string().trim().min(1),
+    reportType: z.string().trim().min(1).max(100),
+  })
+  .strict();
 
 export const reportUpdateSchema = z
   .object({
     version: z.number().int().positive(),
     items: z.array(reportItemInputSchema).min(1).max(250),
   })
+  .strict()
   .superRefine((value, context) => {
     const indicatorIds = new Set<string>();
     value.items.forEach((item, index) => {
@@ -33,12 +38,16 @@ export const reportUpdateSchema = z
 
 export const reportIdParamsSchema = z.object({ id: z.string().trim().min(1) });
 
-export const reviewCommentSchema = z.object({
-  message: z.string().trim().min(1, "Catatan reviu wajib diisi.").max(20_000),
-});
+export const reviewCommentSchema = z
+  .object({
+    message: z.string().trim().min(1, "Catatan reviu wajib diisi.").max(20_000),
+  })
+  .strict();
 
 export const reportQuerySchema = paginationQuerySchema.extend({
   periodId: z.string().trim().min(1).optional(),
   uptId: z.string().trim().min(1).optional(),
   status: reportStatusSchema.optional(),
 });
+
+export const historyQuerySchema = paginationQuerySchema;

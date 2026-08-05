@@ -49,11 +49,11 @@ export const auth = betterAuth({
     updateAge: 60 * 60,
   },
   advanced: {
-    useSecureCookies: environment.NODE_ENV === "production",
+    useSecureCookies: environment.NODE_ENV !== "development",
     defaultCookieAttributes: {
       httpOnly: true,
       sameSite: "lax",
-      secure: environment.NODE_ENV === "production",
+      secure: environment.NODE_ENV !== "development",
     },
   },
   disabledPaths: ["/sign-up/email"],

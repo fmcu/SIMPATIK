@@ -7,6 +7,7 @@ import {
 
 import { prisma } from "../../config/prisma.js";
 import { requireRole, requireSession } from "../../middleware/auth.js";
+import { roles } from "../../middleware/permissions.js";
 import type { AuthRequest } from "../../middleware/auth.types.js";
 import { createAuditRepository } from "../shared/audit.repository.js";
 import { asyncHandler, paginationMeta, routeParam, sendData, validate } from "../shared/http.js";
@@ -22,12 +23,13 @@ export function createPeriodRouter(): Router {
     createPeriodRepository(prisma),
     createAuditRepository(prisma),
   );
-  const admin = [requireSession, requireRole("ADMIN_SIMPATIK")];
+  const admin = [requireSession, requireRole(...roles.admin)];
   const audit = createAuditRepository(prisma);
 
   router.get(
     "/",
     requireSession,
+    requireRole(...roles.configurationReaders),
     validate(periodQuerySchema, "query"),
     asyncHandler(async (request, response) => {
       const query = request.query as unknown as {
@@ -56,6 +58,7 @@ export function createPeriodRouter(): Router {
   router.get(
     "/:id",
     requireSession,
+    requireRole(...roles.configurationReaders),
     validate(periodIdParamsSchema, "params"),
     asyncHandler(async (request, response) => {
       sendData(response, await periodService.detail(routeParam(request, "id")));

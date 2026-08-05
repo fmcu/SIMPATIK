@@ -7,6 +7,7 @@ import {
 import { PrismaClient } from "@prisma/client";
 
 import { requireRole, requireSession } from "../../middleware/auth.js";
+import { roles } from "../../middleware/permissions.js";
 import type { AuthRequest } from "../../middleware/auth.types.js";
 import type { AuditRepository } from "../shared/audit.repository.js";
 import { asyncHandler, routeParam, sendData, validate } from "../shared/http.js";
@@ -28,6 +29,7 @@ export function createIndicatorRouter(
   router.get(
     "/",
     requireSession,
+    requireRole(...roles.configurationReaders),
     asyncHandler(async (request, response) => {
       sendData(response, await service.list(routeParam(request, "id")));
     }),
@@ -55,6 +57,7 @@ export function createIndicatorMutationRouter(service: IndicatorService): Router
   router.get(
     "/:id",
     requireSession,
+    requireRole(...roles.configurationReaders),
     asyncHandler(async (request, response) => {
       sendData(response, await service.detail(routeParam(request, "id")));
     }),
@@ -62,7 +65,7 @@ export function createIndicatorMutationRouter(service: IndicatorService): Router
   router.patch(
     "/:id",
     requireSession,
-    requireRole("ADMIN_SIMPATIK"),
+    requireRole(...roles.admin),
     validate(indicatorUpdateSchema, "body"),
     asyncHandler(async (request, response) => {
       sendData(
@@ -78,7 +81,7 @@ export function createIndicatorMutationRouter(service: IndicatorService): Router
   router.post(
     "/:id/approve",
     requireSession,
-    requireRole("PRODUCT_OWNER"),
+    requireRole(...roles.productOwner),
     validate(approvalRequestSchema, "body"),
     asyncHandler(async (request, response) => {
       sendData(

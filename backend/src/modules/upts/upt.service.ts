@@ -16,12 +16,14 @@ export class UptService {
     pageSize: number;
     search?: string | undefined;
     active?: boolean | undefined;
+    uptScopeId?: string | undefined;
   }) {
     return this.repository.list({
       skip: (input.page - 1) * input.pageSize,
       take: input.pageSize,
       search: input.search,
       active: input.active,
+      uptScopeId: input.uptScopeId,
     });
   }
 

@@ -2,6 +2,7 @@ import { Router, type RequestHandler } from "express";
 
 import { prisma } from "../../config/prisma.js";
 import { enforceUptScope, requireRole, requireSession } from "../../middleware/auth.js";
+import { roles } from "../../middleware/permissions.js";
 import { asyncHandler, validate } from "../shared/http.js";
 import { ReportController } from "./report.controller.js";
 import { createReportRepository } from "./report.repository.js";
@@ -13,25 +14,21 @@ import {
   reportCreateSchema,
   reportIdParamsSchema,
   reportQuerySchema,
+  historyQuerySchema,
   reportUpdateSchema,
   reviewCommentSchema,
 } from "./report.schema.js";
 import { ReportService } from "./report.service.js";
 
-const reportReaders = [
-  "PIMPINAN",
-  "PRODUCT_OWNER",
-  "PETUGAS_KANWIL",
-  "KOORDINATOR_UPT",
-  "PETUGAS_UPT",
-] as const;
+const reportReaders = roles.reportReaders;
 
 export type ReportControllerHandlers = Pick<
   ReportController,
   | "list"
   | "create"
-  | "detail"
-  | "submit"
+   | "detail"
+   | "history"
+   | "submit"
   | "update"
   | "validateCompleteness"
   | "addReviewComment"
@@ -70,7 +67,7 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
   router.post(
     "/",
     session,
-    requireRole("PETUGAS_UPT"),
+    requireRole(...roles.uptEditor),
     enforceUptScope,
     validate(reportCreateSchema, "body"),
     asyncHandler(controller.create),
@@ -84,9 +81,18 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
     asyncHandler(controller.detail),
   );
   router.get(
+    "/:id/history",
+    session,
+    requireRole(...reportReaders),
+    enforceUptScope,
+    validate(reportIdParamsSchema, "params"),
+    validate(historyQuerySchema, "query"),
+    asyncHandler(controller.history),
+  );
+  router.get(
     "/:id/completeness",
     session,
-    requireRole("KOORDINATOR_UPT", "PETUGAS_UPT"),
+    requireRole(...roles.reportValidator),
     enforceUptScope,
     validate(reportIdParamsSchema, "params"),
     asyncHandler(controller.validateCompleteness),
@@ -95,7 +101,7 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
   router.post(
     "/:id/submit",
     session,
-    requireRole("KOORDINATOR_UPT"),
+    requireRole(...roles.coordinator),
     enforceUptScope,
     validate(reportIdParamsSchema, "params"),
     asyncHandler(controller.submit),
@@ -103,7 +109,7 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
   router.post(
     "/:id/comments",
     session,
-    requireRole("PETUGAS_KANWIL"),
+    requireRole(...roles.kanwilReviewer),
     validate(reportIdParamsSchema, "params"),
     validate(reviewCommentSchema, "body"),
     asyncHandler(controller.addReviewComment),
@@ -111,7 +117,7 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
   router.post(
     "/:id/request-revision",
     session,
-    requireRole("PETUGAS_KANWIL"),
+    requireRole(...roles.kanwilReviewer),
     validate(reportIdParamsSchema, "params"),
     validate(reviewCommentSchema, "body"),
     asyncHandler(controller.requestRevision),
@@ -119,21 +125,21 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
   router.post(
     "/:id/mark-reviewed",
     session,
-    requireRole("PETUGAS_KANWIL"),
+    requireRole(...roles.kanwilReviewer),
     validate(reportIdParamsSchema, "params"),
     asyncHandler(controller.markReviewed),
   );
   router.post(
     "/:id/approve",
     session,
-    requireRole("PRODUCT_OWNER"),
+    requireRole(...roles.productOwner),
     validate(reportIdParamsSchema, "params"),
     asyncHandler(controller.approve),
   );
   router.patch(
     "/:id",
     session,
-    requireRole("PETUGAS_UPT"),
+    requireRole(...roles.uptEditor),
     enforceUptScope,
     validate(reportIdParamsSchema, "params"),
     validate(reportUpdateSchema, "body"),

@@ -32,6 +32,7 @@ export const approvalRequestSchema = z
     status: z.enum(["APPROVED", "REJECTED"]),
     reason: z.string().trim().max(1000).optional(),
   })
+  .strict()
   .superRefine((value, context) => {
     if (value.status === "REJECTED" && !value.reason) {
       context.addIssue({
@@ -79,6 +80,7 @@ export const apiErrorCodeSchema = z.enum([
   "ATTACHMENT_INVALID",
   "ATTACHMENT_TOO_LARGE",
   "RATE_LIMITED",
+  "REQUEST_TOO_LARGE",
   "INTERNAL_ERROR",
 ]);
 
@@ -116,43 +118,51 @@ export const apiErrorSchema = z.object({
     message: z.string(),
     fields: z.array(apiFieldErrorSchema),
   }),
+  meta: apiMetaSchema.optional(),
 });
 
 export type ApiError = z.infer<typeof apiErrorSchema>;
 
-export const uptCreateSchema = z.object({
-  code: z.string().trim().min(1).max(32),
-  name: z.string().trim().min(1).max(200),
-  active: z.boolean().default(true),
-});
+export const uptCreateSchema = z
+  .object({
+    code: z.string().trim().min(1).max(32),
+    name: z.string().trim().min(1).max(200),
+    active: z.boolean().default(true),
+  })
+  .strict();
 
-export const uptUpdateSchema = uptCreateSchema.partial();
+export const uptUpdateSchema = uptCreateSchema.partial().strict();
 
-export const userCreateSchema = z.object({
-  name: z.string().trim().min(1).max(200),
-  email: z
-    .string()
-    .email()
-    .transform((value) => value.toLowerCase()),
-  password: z.string().min(8).max(128),
-  role: roleSchema,
-  uptId: z.string().trim().min(1).nullable().optional(),
-  active: z.boolean().default(true),
-});
+export const userCreateSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    email: z
+      .string()
+      .email()
+      .transform((value) => value.toLowerCase()),
+    password: z.string().min(8).max(128),
+    role: roleSchema,
+    uptId: z.string().trim().min(1).nullable().optional(),
+    active: z.boolean().default(true),
+  })
+  .strict();
 
 export const userUpdateSchema = userCreateSchema
   .omit({ password: true })
   .partial()
   .extend({
     password: z.string().min(8).max(128).optional(),
-  });
+  })
+  .strict();
 
-const periodFieldsSchema = z.object({
-  name: z.string().trim().min(1).max(200),
-  startDate: z.coerce.date(),
-  dueDate: z.coerce.date(),
-  status: periodStatusSchema.default("DRAFT"),
-});
+const periodFieldsSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    startDate: z.coerce.date(),
+    dueDate: z.coerce.date(),
+    status: periodStatusSchema.default("DRAFT"),
+  })
+  .strict();
 
 export const periodCreateSchema = periodFieldsSchema.superRefine((value, context) => {
   if (value.startDate > value.dueDate) {
@@ -164,28 +174,32 @@ export const periodCreateSchema = periodFieldsSchema.superRefine((value, context
   }
 });
 
-export const periodUpdateSchema = periodFieldsSchema.partial();
+export const periodUpdateSchema = periodFieldsSchema.partial().strict();
 
-export const indicatorCreateSchema = z.object({
-  code: z.string().trim().min(1).max(64),
-  name: z.string().trim().min(1).max(200),
-  required: z.boolean().default(false),
-  order: z.number().int().nonnegative(),
-  inputConfig: z.record(z.unknown()).default({}),
-});
+export const indicatorCreateSchema = z
+  .object({
+    code: z.string().trim().min(1).max(64),
+    name: z.string().trim().min(1).max(200),
+    required: z.boolean().default(false),
+    order: z.number().int().nonnegative(),
+    inputConfig: z.record(z.unknown()).default({}),
+  })
+  .strict();
 
-export const indicatorUpdateSchema = indicatorCreateSchema.partial();
+export const indicatorUpdateSchema = indicatorCreateSchema.partial().strict();
 
-const requiredDocumentFieldsSchema = z.object({
-  periodId: z.string().trim().min(1).optional(),
-  indicatorId: z.string().trim().min(1).optional(),
-  code: z.string().trim().min(1).max(64),
-  name: z.string().trim().min(1).max(200),
-  required: z.boolean().default(true),
-  allowedMimeTypes: z.array(z.string().trim().min(1)).min(1).max(50),
-  maxSize: z.number().int().positive().max(1_073_741_824),
-  order: z.number().int().nonnegative(),
-});
+const requiredDocumentFieldsSchema = z
+  .object({
+    periodId: z.string().trim().min(1).optional(),
+    indicatorId: z.string().trim().min(1).optional(),
+    code: z.string().trim().min(1).max(64),
+    name: z.string().trim().min(1).max(200),
+    required: z.boolean().default(true),
+    allowedMimeTypes: z.array(z.string().trim().min(1)).min(1).max(50),
+    maxSize: z.number().int().positive().max(1_073_741_824),
+    order: z.number().int().nonnegative(),
+  })
+  .strict();
 
 export const requiredDocumentCreateSchema = requiredDocumentFieldsSchema.superRefine(
   (value, context) => {

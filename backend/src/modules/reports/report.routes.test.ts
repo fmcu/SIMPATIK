@@ -39,6 +39,9 @@ function controller(): ReportControllerHandlers {
     detail: async (_request, response) => {
       response.json({ data: {}, meta: {} });
     },
+    history: async (_request, response) => {
+      response.json({ data: [], meta: {} });
+    },
     submit: async (_request, response) => {
       response.json({ data: {}, meta: {} });
     },

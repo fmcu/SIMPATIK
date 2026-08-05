@@ -3,6 +3,7 @@ import { userCreateSchema, userUpdateSchema } from "@simpatik/contracts";
 
 import { prisma } from "../../config/prisma.js";
 import { requireRole, requireSession } from "../../middleware/auth.js";
+import { roles } from "../../middleware/permissions.js";
 import type { AuthRequest } from "../../middleware/auth.types.js";
 import { createAuditRepository } from "../shared/audit.repository.js";
 import { asyncHandler, paginationMeta, routeParam, sendData, validate } from "../shared/http.js";
@@ -39,7 +40,7 @@ function publicUser<
 export function createUserRouter(): Router {
   const router = Router();
   const service = new UserService(createUserRepository(prisma), createAuditRepository(prisma));
-  const admin = [requireSession, requireRole("ADMIN_SIMPATIK")];
+  const admin = [requireSession, requireRole(...roles.admin)];
 
   router.get(
     "/",

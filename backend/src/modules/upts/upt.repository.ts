@@ -5,6 +5,7 @@ type UPTListArgs = {
   take: number;
   search?: string | undefined;
   active?: boolean | undefined;
+  uptScopeId?: string | undefined;
 };
 
 export interface UptRepository {
@@ -16,8 +17,9 @@ export interface UptRepository {
 
 export function createUptRepository(database: PrismaClient = new PrismaClient()): UptRepository {
   return {
-    async list({ skip, take, search, active }) {
+    async list({ skip, take, search, active, uptScopeId }) {
       const where = {
+        ...(uptScopeId ? { id: uptScopeId } : {}),
         ...(active === undefined ? {} : { active }),
         ...(search
           ? {

@@ -11,21 +11,34 @@ const statusToCode: Record<number, ApiErrorCode> = {
   403: "FORBIDDEN",
   404: "NOT_FOUND",
   409: "CONFLICT",
+  413: "REQUEST_TOO_LARGE",
+  429: "RATE_LIMITED",
 };
 
-export const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
+export const errorHandler: ErrorRequestHandler = (error, request, response, next) => {
   void next;
   const isAppError = error instanceof AppError;
-  const statusCode = isAppError ? error.statusCode : 500;
-  const code = isAppError ? error.code : (statusToCode[statusCode] ?? "INTERNAL_ERROR");
-  const message = isAppError ? error.message : "Terjadi kesalahan internal.";
+  const isRequestTooLarge = !isAppError && error?.type === "entity.too.large";
+  const isInvalidJson = !isAppError && error?.type === "entity.parse.failed";
+  const statusCode = isAppError ? error.statusCode : isRequestTooLarge ? 413 : isInvalidJson ? 400 : 500;
+  const code = isAppError
+    ? error.code
+    : (statusToCode[statusCode] ?? "INTERNAL_ERROR");
+  const message = isAppError
+    ? error.message
+    : isRequestTooLarge
+      ? "Ukuran request melebihi batas yang diizinkan."
+      : isInvalidJson
+        ? "Format JSON tidak valid."
+        : "Terjadi kesalahan internal.";
   const fields = isAppError ? error.fields : [];
 
   if (!isAppError) {
     writeLog("error", "unhandled_error", {
       requestId: response.locals.requestId,
       errorName: error instanceof Error ? error.name : "UnknownError",
-      errorMessage: error instanceof Error ? error.message : "Unknown error",
+      method: request.method,
+      path: request.path,
     });
   }
 
@@ -35,5 +48,6 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, nex
       message,
       fields,
     },
+    meta: { requestId: response.locals.requestId },
   });
 };

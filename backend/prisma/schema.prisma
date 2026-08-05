@@ -220,6 +220,9 @@ model Report {
   @@index([periodId, status])
   @@index([uptId, periodId])
   @@index([periodId, uptId, status])
+  @@index([uptId, status, updatedAt])
+  @@index([periodId, status, updatedAt])
+  @@index([periodId, uptId, updatedAt])
 }
 
 model ReportItem {

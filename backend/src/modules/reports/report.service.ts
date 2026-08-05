@@ -30,6 +30,15 @@ export class ReportService {
     return report;
   }
 
+  async history(id: string, input: { page: number; pageSize: number; uptScopeId?: string }) {
+    await this.detail(id, input.uptScopeId);
+    const result = await this.repository.history(id, input.uptScopeId, {
+      skip: (input.page - 1) * input.pageSize,
+      take: input.pageSize,
+    });
+    return { items: result.items, total: result.total };
+  }
+
   async create(input: ReportCreateInput): Promise<ReportDetail> {
     const context = await this.repository.findCreationContext(input.periodId, input.uptId);
     if (!context.period) throw new AppError(404, "NOT_FOUND", "Periode tidak ditemukan.");

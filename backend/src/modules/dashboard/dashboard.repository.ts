@@ -31,8 +31,11 @@ export type DashboardPeriod = {
 export interface DashboardRepository {
   findPeriod(id?: string): Promise<DashboardPeriod | null>;
   summarize(filters: DashboardFilters): Promise<Record<ReportStatus, number>>;
-  listByUpt(filters: DashboardFilters): Promise<
-    Array<{
+  listByUpt(
+    filters: DashboardFilters,
+    pagination: { skip: number; take: number },
+  ): Promise<{
+    items: Array<{
       id: string;
       code: string;
       name: string;
@@ -43,8 +46,9 @@ export interface DashboardRepository {
         updatedAt: Date;
         submittedAt: Date | null;
       }>;
-    }>
-  >;
+    }>;
+    total: number;
+  }>;
   listReports(filters: DashboardFilters): Promise<DashboardReport[]>;
 }
 
@@ -90,30 +94,40 @@ export function createDashboardRepository(database: PrismaClient): DashboardRepo
       });
       return counts;
     },
-    listByUpt: (filters) =>
-      database.uPT.findMany({
-        where: { active: true, ...(filters.uptId ? { id: filters.uptId } : {}) },
-        orderBy: { code: "asc" },
-        select: {
-          id: true,
-          code: true,
-          name: true,
-          reports: {
-            where: reportWhere(filters),
-            orderBy: { updatedAt: "desc" },
-            select: {
-              id: true,
-              reportType: true,
-              status: true,
-              updatedAt: true,
-              submittedAt: true,
+    async listByUpt(filters, pagination) {
+      const where = { active: true, ...(filters.uptId ? { id: filters.uptId } : {}) };
+      const [items, total] = await Promise.all([
+        database.uPT.findMany({
+          where,
+          skip: pagination.skip,
+          take: pagination.take,
+          orderBy: { code: "asc" },
+          select: {
+            id: true,
+            code: true,
+            name: true,
+            reports: {
+              where: reportWhere(filters),
+              orderBy: { updatedAt: "desc" },
+              take: 1,
+              select: {
+                id: true,
+                reportType: true,
+                status: true,
+                updatedAt: true,
+                submittedAt: true,
+              },
             },
           },
-        },
-      }),
+        }),
+        database.uPT.count({ where }),
+      ]);
+      return { items, total };
+    },
     listReports: (filters) =>
       database.report.findMany({
         where: reportWhere(filters),
+        take: 1_000,
         orderBy: [
           { period: { startDate: "desc" } },
           { upt: { code: "asc" } },

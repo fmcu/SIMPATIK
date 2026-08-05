@@ -12,7 +12,11 @@ const statuses: readonly ReportStatus[] = [
   "APPROVED",
 ];
 
-export type DashboardScope = DashboardFilters & { uptScopeId?: string };
+export type DashboardScope = DashboardFilters & {
+  uptScopeId?: string;
+  page?: number;
+  pageSize?: number;
+};
 
 function scopedFilters(input: DashboardScope): DashboardFilters {
   return {
@@ -21,6 +25,12 @@ function scopedFilters(input: DashboardScope): DashboardFilters {
     ...(input.status === undefined ? {} : { status: input.status }),
     ...(input.reportType === undefined ? {} : { reportType: input.reportType }),
   };
+}
+
+function pagination(input: DashboardScope) {
+  const page = input.page ?? 1;
+  const pageSize = input.pageSize ?? 25;
+  return { page, pageSize, skip: (page - 1) * pageSize, take: pageSize };
 }
 
 function reportState(
@@ -70,9 +80,13 @@ export class DashboardService {
     const filters = scopedFilters(input);
     const period = await this.repository.findPeriod(filters.periodId);
     if (!period) throw new AppError(404, "NOT_FOUND", "Periode tidak ditemukan.");
-    const rows = await this.repository.listByUpt({ ...filters, periodId: period.id });
+    const page = pagination(input);
+    const result = await this.repository.listByUpt(
+      { ...filters, periodId: period.id },
+      { skip: page.skip, take: page.take },
+    );
     const now = new Date();
-    const status = rows.map((row) => {
+    const status = result.items.map((row) => {
       const state = reportState(row.reports, period.dueDate, now);
       const report = row.reports[0];
       return {
@@ -97,6 +111,12 @@ export class DashboardService {
         .filter((item) => item.status === "NOT_SENT" || item.status === "DRAFT")
         .map((item) => item.upt),
       late: status.filter((item) => item.late).map((item) => item.upt),
+      pagination: {
+        page: page.page,
+        pageSize: page.pageSize,
+        total: result.total,
+        totalPages: Math.ceil(result.total / page.pageSize),
+      },
     };
   }
 

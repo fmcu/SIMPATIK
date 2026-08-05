@@ -64,12 +64,14 @@ export default function HomePage() {
   const auth = useRequireSession();
   const role = auth.session?.user.role;
   const canCreate = role === "PETUGAS_UPT";
+  const canFilterUpt = role === "PIMPINAN" || role === "PRODUCT_OWNER" || role === "PETUGAS_KANWIL" || role === "ADMIN_SIMPATIK";
   const [periods, setPeriods] = useState<Period[]>([]);
   const [upts, setUpts] = useState<UPT[]>([]);
   const [periodId, setPeriodId] = useState("");
   const [uptId, setUptId] = useState("");
   const [status, setStatus] = useState("");
   const [filters, setFilters] = useState({ periodId: "", uptId: "", status: "" });
+  const [uptPage, setUptPage] = useState(1);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [byUpt, setByUpt] = useState<DashboardByUpt | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
@@ -85,7 +87,7 @@ export default function HomePage() {
     try {
       const [periodList, uptList] = await Promise.all([
         apiClient.periods.list({ page: 1, pageSize: 100 }),
-        apiClient.upts.list({ page: 1, pageSize: 100 }),
+        canFilterUpt ? apiClient.upts.list({ page: 1, pageSize: 100 }) : Promise.resolve(null),
       ]);
       const effectivePeriodId =
         filters.periodId ||
@@ -93,7 +95,7 @@ export default function HomePage() {
         periodList.data[0]?.id;
       if (!effectivePeriodId) {
         setPeriods(periodList.data);
-        setUpts(uptList.data);
+        setUpts(uptList?.data ?? []);
         setSummary(null);
         setByUpt(null);
         setReports([]);
@@ -102,11 +104,11 @@ export default function HomePage() {
       const query = queryWithoutEmpty({ ...filters, periodId: effectivePeriodId });
       const [summaryResult, byUptResult, reportList] = await Promise.all([
         apiClient.dashboard.summary(query),
-        apiClient.dashboard.byUpt(query),
+        apiClient.dashboard.byUpt({ ...query, page: uptPage, pageSize: 25 }),
         apiClient.reports.list({ page: 1, pageSize: 10, ...query }),
       ]);
       setPeriods(periodList.data);
-      setUpts(uptList.data);
+       setUpts(uptList?.data ?? []);
       setPeriodId(effectivePeriodId);
       setSummary(summaryResult);
       setByUpt(byUptResult);
@@ -117,7 +119,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [canFilterUpt, filters, uptPage]);
 
   useEffect(() => {
     if (!auth.session) return;
@@ -270,12 +272,14 @@ export default function HomePage() {
             loading={loading}
             onSubmit={(event) => {
               event.preventDefault();
+              setUptPage(1);
               setFilters({ periodId, uptId, status });
             }}
             onReset={() => {
               setPeriodId("");
               setUptId("");
               setStatus("");
+              setUptPage(1);
               setFilters({ periodId: "", uptId: "", status: "" });
             }}
           >
@@ -309,21 +313,23 @@ export default function HomePage() {
                 ))}
               </Select>
             </FormField>
-            <FormField id="dashboard-upt" label="UPT">
-              <Select
-                id="dashboard-upt"
-                value={uptId}
-                onChange={(event) => setUptId(event.target.value)}
-                disabled={loading}
-              >
-                <option value="">Semua UPT</option>
-                {upts.map((upt) => (
-                  <option key={upt.id} value={upt.id}>
-                    {upt.code} — {upt.name}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
+            {canFilterUpt ? (
+              <FormField id="dashboard-upt" label="UPT">
+                <Select
+                  id="dashboard-upt"
+                  value={uptId}
+                  onChange={(event) => setUptId(event.target.value)}
+                  disabled={loading}
+                >
+                  <option value="">Semua UPT</option>
+                  {upts.map((upt) => (
+                    <option key={upt.id} value={upt.id}>
+                      {upt.code} — {upt.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            ) : null}
           </FilterBar>
 
           {loading && !summary ? (
@@ -389,9 +395,11 @@ export default function HomePage() {
                     data={latestStatus}
                     getRowId={(row) => row.upt.id}
                     caption="Status pelaporan per UPT"
-                    emptyTitle="Status UPT belum tersedia"
-                    emptyDescription="Belum ada data UPT pada filter ini."
-                  />
+                     emptyTitle="Status UPT belum tersedia"
+                     emptyDescription="Belum ada data UPT pada filter ini."
+                     pagination={byUpt.pagination}
+                     onPageChange={setUptPage}
+                   />
                 </div>
                 <aside className="rounded-xl border bg-primary p-5 text-primary-foreground">
                   <p className="text-sm font-semibold">Ringkasan tenggat</p>
@@ -404,7 +412,7 @@ export default function HomePage() {
                     </p>
                     <p className="flex justify-between gap-4">
                       <span>Total UPT</span>
-                      <strong>{latestStatus.length}</strong>
+                      <strong>{byUpt.pagination?.total ?? latestStatus.length}</strong>
                     </p>
                     <p className="flex justify-between gap-4">
                       <span>Tenggat</span>

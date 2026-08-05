@@ -4,6 +4,7 @@ import { rateLimit } from "express-rate-limit";
 import { environment } from "../../config/environment.js";
 import { prisma } from "../../config/prisma.js";
 import { enforceUptScope, requireRole, requireSession } from "../../middleware/auth.js";
+import { roles } from "../../middleware/permissions.js";
 import type { AuthRequest } from "../../middleware/auth.types.js";
 import { AppError } from "../../middleware/error.js";
 import { createPrivateStorageAdapter, type PrivateStorageAdapter } from "../../services/private-storage.service.js";
@@ -13,13 +14,7 @@ import { createAttachmentRepository } from "./attachment.repository.js";
 import { AttachmentService } from "./attachment.service.js";
 import { parseAttachmentUpload } from "./attachment.upload.js";
 
-const reportReaders = [
-  "PIMPINAN",
-  "PRODUCT_OWNER",
-  "PETUGAS_KANWIL",
-  "KOORDINATOR_UPT",
-  "PETUGAS_UPT",
-] as const;
+const reportReaders = roles.reportReaders;
 
 const uploadRateLimit = rateLimit({
   windowMs: 15 * 60 * 1_000,
@@ -118,7 +113,7 @@ export function createReportAttachmentRouter(dependencies: AttachmentRouteDepend
   router.post(
     "/",
     session,
-    requireRole("PETUGAS_UPT"),
+    requireRole(...roles.uptEditor),
     enforceUptScope,
     validate(reportAttachmentParamsSchema, "params"),
     uploadRateLimit,
@@ -142,7 +137,7 @@ export function createAttachmentRouter(dependencies: AttachmentRouteDependencies
   router.delete(
     "/:id",
     session,
-    requireRole("PETUGAS_UPT"),
+    requireRole(...roles.uptEditor),
     enforceUptScope,
     validate(attachmentIdParamsSchema, "params"),
     asyncHandler(controller.delete),

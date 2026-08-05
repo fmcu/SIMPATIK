@@ -1,9 +1,11 @@
 import cors from "cors";
+import { rateLimit } from "express-rate-limit";
 import express from "express";
 import helmet from "helmet";
 import { toNodeHandler } from "better-auth/node";
 
 import { environment } from "./config/environment.js";
+import { AppError } from "./middleware/error.js";
 import { auth } from "./modules/auth/auth.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { notFoundHandler } from "./middleware/error.js";
@@ -29,24 +31,69 @@ export function createApp(database?: DatabaseReadinessClient): express.Express {
   const app = express();
 
   app.disable("x-powered-by");
-  app.use(helmet());
+  app.set("trust proxy", environment.NODE_ENV === "production" ? 1 : false);
+  app.use(
+    helmet({
+      contentSecurityPolicy: environment.NODE_ENV === "production",
+      hsts: environment.NODE_ENV === "production",
+      referrerPolicy: { policy: "no-referrer" },
+      frameguard: { action: "deny" },
+    }),
+  );
+  app.use((_request, response, next) => {
+    response.setHeader("Cache-Control", "no-store");
+    next();
+  });
+  app.use(requestId);
+  app.use((request, _response, next) => {
+    const contentLength = Number(request.headers["content-length"] ?? 0);
+    const maxRequestSize = request.is("multipart/form-data")
+      ? environment.MAX_UPLOAD_SIZE + 65_536
+      : 1_048_576;
+    if (Number.isFinite(contentLength) && contentLength > maxRequestSize) {
+      next(new AppError(413, "REQUEST_TOO_LARGE", "Ukuran request melebihi batas yang diizinkan."));
+      return;
+    }
+    next();
+  });
+  app.use((request, _response, next) => {
+    const origin = request.headers.origin;
+    if (origin && !environment.trustedOrigins.includes(origin)) {
+      next(new AppError(403, "FORBIDDEN", "Origin tidak diizinkan."));
+      return;
+    }
+    next();
+  });
   app.use(
     cors({
       credentials: true,
       origin(origin, callback) {
-        if (!origin || environment.trustedOrigins.includes(origin)) {
-          callback(null, true);
-          return;
-        }
-
-        callback(new Error("Origin tidak diizinkan."));
+        callback(null, !origin || environment.trustedOrigins.includes(origin));
       },
     }),
   );
-  app.use(requestId);
   app.use(logger);
+  app.use(
+    rateLimit({
+      windowMs: 15 * 60 * 1_000,
+      limit: 300,
+      standardHeaders: "draft-7",
+      legacyHeaders: false,
+      skip: (request) => request.path.startsWith("/health"),
+      handler: (_request, response) => {
+        response.status(429).json({
+          error: {
+            code: "RATE_LIMITED",
+            message: "Terlalu banyak permintaan. Coba lagi beberapa saat lagi.",
+            fields: [],
+          },
+        });
+      },
+    }),
+  );
   app.all("/api/auth/*splat", toNodeHandler(auth));
-  app.use(express.json({ limit: "1mb" }));
+  app.use(express.json({ limit: "1mb", strict: true }));
+  app.use(express.urlencoded({ extended: false, limit: "64kb" }));
 
   app.use("/health", createHealthRouter(database));
   app.use("/api/upts", createUptRouter());

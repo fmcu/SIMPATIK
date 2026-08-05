@@ -45,7 +45,7 @@ const sourceReports = [
   },
 ] satisfies DashboardReport[];
 
-type DashboardUptRow = Awaited<ReturnType<DashboardRepository["listByUpt"]>>[number];
+type DashboardUptRow = Awaited<ReturnType<DashboardRepository["listByUpt"]>>["items"][number];
 const upts: DashboardUptRow[] = [
   { id: "upt-01", code: "UPT-01", name: "UPT Satu", reports: [sourceReports[0]!] },
   { id: "upt-02", code: "UPT-02", name: "UPT Dua", reports: [sourceReports[1]!] },
@@ -73,7 +73,7 @@ function createSourceRepository(): DashboardRepository {
       return counts;
     },
     async listByUpt() {
-      return upts;
+      return { items: upts, total: upts.length };
     },
     async listReports(filters) {
       return sourceReports.filter((report) => !filters.status || report.status === filters.status);

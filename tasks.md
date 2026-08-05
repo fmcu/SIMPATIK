@@ -144,7 +144,7 @@ Task selesai jika:
 - [x] **AUTH-009 [P0]** Buat middleware pembatasan UPT.
 - [x] **AUTH-010 [P0]** Pastikan akun tidak aktif tidak dapat membuat session baru.
 - [x] **AUTH-011 [P0]** Tambahkan rate limit pada endpoint autentikasi.
-- [ ] **AUTH-012 [P0]** Terapkan permission matrix tujuh role dan segregation of duties.
+- [x] **AUTH-012 [P0]** Terapkan permission matrix tujuh role dan segregation of duties.
 - [x] **AUTH-013 [P0]** Pastikan System Administrator tidak memiliki akses substansi laporan secara default.
 
 ### Halaman auth
@@ -162,7 +162,7 @@ Task selesai jika:
 - [x] **BE-102 [P0]** Buat API daftar dan ubah metadata UPT.
 - [x] **FE-106 [P0]** Buat halaman manajemen pengguna.
 - [x] **FE-107 [P0]** Buat halaman master UPT.
-- [ ] **QA-101 [P0]** Uji matriks role dan penolakan akses API langsung.
+- [x] **QA-101 [P0]** Uji matriks role dan penolakan akses API langsung.
 
 ### Periode
 
@@ -343,12 +343,12 @@ Task selesai jika:
 - [ ] **SEC-003 [P0]** Verifikasi cookie, trusted origins, CORS, dan credentials.
 - [ ] **SEC-004 [P0]** Tambahkan security headers dan rate limit.
 - [ ] **SEC-005 [P0]** Uji upload berbahaya, MIME palsu, file terlalu besar, dan path traversal.
-- [ ] **SEC-006 [P0]** Verifikasi error produksi tidak memuat stack trace atau detail database.
+- [x] **SEC-006 [P0]** Verifikasi error produksi tidak memuat stack trace atau detail database.
 - [ ] **SEC-007 [P0]** Jalankan dependency audit dan tangani temuan kritis.
 
 ### Testing
 
-- [ ] **QA-501 [P0]** Unit test aturan bisnis dan service.
+- [x] **QA-501 [P0]** Unit test aturan bisnis dan service.
 - [ ] **QA-502 [P0]** Integration test API utama.
 - [ ] **QA-503 [P0]** E2E login dan alur Petugas UPT.
 - [ ] **QA-504 [P0]** E2E validasi dan pengajuan Koordinator UPT.

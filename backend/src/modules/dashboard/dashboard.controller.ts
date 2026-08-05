@@ -25,6 +25,8 @@ export class DashboardController {
       response,
       await this.service.summary({
         ...filtersFromQuery(query),
+        page: query.page,
+        pageSize: query.pageSize,
         ...(scope ? { uptScopeId: scope } : {}),
       }),
     );
@@ -37,6 +39,8 @@ export class DashboardController {
       response,
       await this.service.byUpt({
         ...filtersFromQuery(query),
+        page: query.page,
+        pageSize: query.pageSize,
         ...(scope ? { uptScopeId: scope } : {}),
       }),
     );

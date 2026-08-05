@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { uptCreateSchema, uptUpdateSchema } from "@simpatik/contracts";
 
-import { requireRole, requireSession } from "../../middleware/auth.js";
+import { enforceUptScope, requireRole, requireSession } from "../../middleware/auth.js";
+import { roles } from "../../middleware/permissions.js";
 import type { AuthRequest } from "../../middleware/auth.types.js";
 import { asyncHandler, paginationMeta, routeParam, sendData, validate } from "../shared/http.js";
 import { createAuditRepository } from "../shared/audit.repository.js";
@@ -13,11 +14,14 @@ import { uptIdParamsSchema, uptQuerySchema } from "./upt.schema.js";
 export function createUptRouter(): Router {
   const router = Router();
   const service = new UptService(createUptRepository(prisma), createAuditRepository(prisma));
-  const admin = [requireSession, requireRole("ADMIN_SIMPATIK")];
+  const readers = roles.uptReaders;
+  const admin = [requireSession, requireRole(...roles.admin)];
 
   router.get(
     "/",
     requireSession,
+    requireRole(...readers),
+    enforceUptScope,
     validate(uptQuerySchema, "query"),
     asyncHandler(async (request, response) => {
       const query = request.query as unknown as {
@@ -26,7 +30,10 @@ export function createUptRouter(): Router {
         search?: string;
         active?: boolean;
       };
-      const result = await service.list(query);
+       const result = await service.list({
+         ...query,
+         uptScopeId: (request as AuthRequest).uptScopeId,
+       });
       sendData(response, result.items, paginationMeta(query.page, query.pageSize, result.total));
     }),
   );
