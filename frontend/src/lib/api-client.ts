@@ -130,7 +130,6 @@ export type Report = {
   reviewedBy?: Pick<User, "id" | "name"> | null;
   approvedBy?: Pick<User, "id" | "name"> | null;
   upt: Pick<UPT, "id" | "code" | "name">;
-
   period: Pick<Period, "id" | "name" | "startDate" | "dueDate" | "status">;
   createdBy: Pick<User, "id" | "name">;
   _count?: { items: number };
@@ -150,6 +149,34 @@ export type AttachmentUploadInput = {
   requirementId?: string;
 };
 export type Paginated<T> = { data: T[]; meta: ApiMeta; pagination: Pagination };
+export type DashboardQuery = {
+  periodId?: string;
+  uptId?: string;
+  status?: ReportStatus;
+  reportType?: string;
+};
+export type DashboardSummary = {
+  period: Pick<Period, "id" | "name" | "startDate" | "dueDate">;
+  filters: DashboardQuery & { periodId: string };
+  counts: Array<{ status: ReportStatus; count: number }>;
+  approvedCount: number;
+  totalReports: number;
+};
+export type DashboardUptStatus = {
+  upt: Pick<UPT, "id" | "code" | "name">;
+  status: ReportStatus | "NOT_SENT";
+  reportId: string | null;
+  reportType: string | null;
+  updatedAt: string | null;
+  submittedAt: string | null;
+  late: boolean;
+};
+export type DashboardByUpt = {
+  period: Pick<Period, "id" | "name" | "startDate" | "dueDate">;
+  status: DashboardUptStatus[];
+  notSent: Array<Pick<UPT, "id" | "code" | "name">>;
+  late: Array<Pick<UPT, "id" | "code" | "name">>;
+};
 
 type ApiErrorPayload = { error?: { code?: string; message?: string; fields?: ApiFieldError[] } };
 type QueryValue = string | number | boolean | undefined;
@@ -311,7 +338,6 @@ async function download(path: string, filename: string): Promise<void> {
       response.status,
       error?.message ?? "File belum dapat diunduh.",
       error?.code ?? "API_ERROR",
-      error?.fields ?? [],
     );
   }
   const objectUrl = URL.createObjectURL(await response.blob());
@@ -411,7 +437,8 @@ export const apiClient = {
       request<Report>(`/reports/${id}/comments`, { method: "POST", body }),
     requestRevision: (id: string, body: { message: string }) =>
       request<Report>(`/reports/${id}/request-revision`, { method: "POST", body }),
-    markReviewed: (id: string) => request<Report>(`/reports/${id}/mark-reviewed`, { method: "POST" }),
+    markReviewed: (id: string) =>
+      request<Report>(`/reports/${id}/mark-reviewed`, { method: "POST" }),
     approve: (id: string) => request<Report>(`/reports/${id}/approve`, { method: "POST" }),
     validateCompleteness: (id: string) =>
       request<{ valid: true }>(`/reports/${id}/completeness`, { method: "GET", cache: "no-store" }),
@@ -427,5 +454,21 @@ export const apiClient = {
     download: (attachment: Pick<ReportAttachment, "id" | "originalName">) =>
       download(`/attachments/${attachment.id}/download`, attachment.originalName),
     delete: (id: string) => request<{ id: string }>(`/attachments/${id}`, { method: "DELETE" }),
+  },
+  dashboard: {
+    summary: (params: DashboardQuery = {}) =>
+      request<DashboardSummary>(`/dashboard/summary${toQuery(params)}`, {
+        method: "GET",
+        cache: "no-store",
+      }),
+    byUpt: (params: DashboardQuery = {}) =>
+      request<DashboardByUpt>(`/dashboard/by-upt${toQuery(params)}`, {
+        method: "GET",
+        cache: "no-store",
+      }),
+  },
+  exports: {
+    reportsCsv: (params: DashboardQuery = {}) =>
+      download(`/exports/reports.csv${toQuery(params)}`, "reports.csv"),
   },
 };

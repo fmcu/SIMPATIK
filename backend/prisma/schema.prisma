@@ -121,6 +121,8 @@ model UPT {
   updatedAt DateTime @updatedAt
   users     User[]
   reports   Report[]
+
+  @@index([active, code])
 }
 
 model ReportingPeriod {
@@ -292,5 +294,6 @@ model AuditLog {
   actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([actorId, createdAt])
+  @@index([action, createdAt])
   @@index([entityType, entityId])
 }

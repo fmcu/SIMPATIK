@@ -301,29 +301,29 @@ Task selesai jika:
 
 ### Dashboard
 
-- [ ] **BE-501 [P0]** Buat query ringkasan per status.
-- [ ] **BE-502 [P0]** Buat query status per UPT.
-- [ ] **BE-503 [P0]** Buat query UPT belum mengirim dan terlambat.
-- [ ] **BE-504 [P0]** Tambahkan indeks berdasarkan hasil query plan.
-- [ ] **FE-501 [P0]** Buat kartu ringkasan status memakai reusable DashboardCard.
-- [ ] **FE-502 [P0]** Buat tabel status 12 UPT memakai reusable DataTable.
-- [ ] **FE-503 [P0]** Buat filter periode, UPT, dan status memakai reusable FilterBar.
-- [ ] **FE-504 [P0]** Buat drill-down dari dashboard ke daftar laporan.
-- [ ] **FE-505 [P0]** Buat tampilan read-only Pimpinan.
+- [x] **BE-501 [P0]** Buat query ringkasan per status.
+- [x] **BE-502 [P0]** Buat query status per UPT.
+- [x] **BE-503 [P0]** Buat query UPT belum mengirim dan terlambat.
+- [x] **BE-504 [P0]** Tambahkan indeks berdasarkan hasil query plan.
+- [x] **FE-501 [P0]** Buat kartu ringkasan status memakai reusable DashboardCard.
+- [x] **FE-502 [P0]** Buat tabel status 12 UPT memakai reusable DataTable.
+- [x] **FE-503 [P0]** Buat filter periode, UPT, dan status memakai reusable FilterBar.
+- [x] **FE-504 [P0]** Buat drill-down dari dashboard ke daftar laporan.
+- [x] **FE-505 [P0]** Buat tampilan read-only Pimpinan.
 
 ### Rekap
 
 - [ ] **PROD-501 [P0]** Konfirmasi kolom rekap CSV.
-- [ ] **BE-505 [P0]** Buat endpoint ekspor CSV.
-- [ ] **BE-506 [P0]** Cantumkan periode, filter, waktu, dan pembuat ekspor.
-- [ ] **FE-506 [P0]** Buat aksi unduh rekap.
+- [x] **BE-505 [P0]** Buat endpoint ekspor CSV.
+- [x] **BE-506 [P0]** Cantumkan periode, filter, waktu, dan pembuat ekspor.
+- [x] **FE-506 [P0]** Buat aksi unduh rekap.
 
 ### Audit
 
-- [ ] **DB-501 [P0]** Buat model AuditLog dan indeks.
-- [ ] **BE-507 [P0]** Buat audit service.
-- [ ] **BE-508 [P0]** Catat perubahan akun, konfigurasi, laporan, status, dan dokumen.
-- [ ] **BE-509 [P0]** Pastikan log tidak menyimpan password, cookie, token, atau isi file.
+- [x] **DB-501 [P0]** Buat model AuditLog dan indeks.
+- [x] **BE-507 [P0]** Buat audit service.
+- [x] **BE-508 [P0]** Catat perubahan akun, konfigurasi, laporan, status, dan dokumen.
+- [x] **BE-509 [P0]** Pastikan log tidak menyimpan password, cookie, token, atau isi file.
 - [ ] **FE-507 [P1]** Buat halaman audit sederhana untuk Admin SIMPATIK dan akses teknis terbatas System Administrator bila waktu tersedia.
 
 ### Exit Minggu 6
@@ -354,7 +354,7 @@ Task selesai jika:
 - [ ] **QA-504 [P0]** E2E validasi dan pengajuan Koordinator UPT.
 - [ ] **QA-505 [P0]** E2E reviu Petugas Kanwil dan persetujuan Product Owner.
 - [ ] **QA-506 [P0]** Uji browser target dan responsive layout.
-- [ ] **QA-507 [P0]** Rekonsiliasi dashboard/CSV dengan query sumber.
+- [x] **QA-507 [P0]** Rekonsiliasi dashboard/CSV dengan query sumber.
 - [ ] **QA-508 [P0]** Lakukan performance smoke test.
 - [ ] **QA-509 [P0]** E2E dashboard Pimpinan dan pembatasan System Administrator.
 - [ ] **QA-510 [P0]** Uji reusable component pada loading, empty, error, disabled, dan permission state.

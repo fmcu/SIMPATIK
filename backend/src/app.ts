@@ -20,6 +20,8 @@ import { createIndicatorService } from "./modules/indicators/indicator.routes.js
 import { createDocumentService } from "./modules/documents/document.routes.js";
 import { createReportRouter } from "./modules/reports/report.routes.js";
 import { createAttachmentRouter } from "./modules/attachments/attachment.routes.js";
+import { createDashboardRouter } from "./modules/dashboard/dashboard.routes.js";
+import { createExportRouter } from "./modules/exports/export.routes.js";
 import { createAuditRepository } from "./modules/shared/audit.repository.js";
 import { prisma } from "./config/prisma.js";
 
@@ -52,6 +54,8 @@ export function createApp(database?: DatabaseReadinessClient): express.Express {
   app.use("/api/periods", createPeriodRouter());
   app.use("/api/reports", createReportRouter());
   app.use("/api/attachments", createAttachmentRouter());
+  app.use("/api/dashboard", createDashboardRouter());
+  app.use("/api/exports", createExportRouter());
   const audit = createAuditRepository(prisma);
   app.use("/api/indicators", createIndicatorMutationRouter(createIndicatorService(prisma, audit)));
   app.use("/api/documents", createDocumentMutationRouter(createDocumentService(prisma, audit)));
