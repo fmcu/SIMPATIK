@@ -225,10 +225,10 @@ Task selesai jika:
 ### Validasi laporan
 
 - [x] **BE-301 [P0]** Buat schema validasi payload laporan.
-- [ ] **BE-302 [P0]** Buat pemeriksaan kelengkapan sebelum submit.
+- [x] **BE-302 [P0]** Buat pemeriksaan kelengkapan sebelum submit.
 - [x] **BE-303 [P0]** Kembalikan field error yang dapat dipetakan ke form.
 - [x] **FE-301 [P0]** Tampilkan error per field dan ringkasan error.
-- [ ] **FE-302 [P0]** Buat halaman/step konfirmasi sebelum pengajuan.
+- [x] **FE-302 [P0]** Buat halaman/step konfirmasi sebelum pengajuan.
 
 ### Dokumen
 
@@ -243,14 +243,14 @@ Task selesai jika:
 
 ### Pengajuan
 
-- [ ] **DB-302 [P0]** Buat model StatusHistory.
-- [ ] **BE-308 [P0]** Implementasikan transisi DRAFT/REVISION_REQUIRED ke SUBMITTED khusus Koordinator UPT.
-- [ ] **BE-309 [P0]** Jalankan perubahan status dan histori dalam transaksi Prisma.
-- [ ] **BE-310 [P0]** Kunci perubahan substansi saat status SUBMITTED.
-- [ ] **BE-311 [P0]** Verifikasi Koordinator UPT dan Petugas UPT berasal dari UPT yang sama.
-- [ ] **FE-304 [P0]** Buat antrean validasi dan aksi pengajuan khusus Koordinator UPT.
-- [ ] **FE-305 [P0]** Tampilkan timeline histori status.
-- [ ] **FE-306 [P0]** Buat ConfirmDialog reusable untuk pengajuan laporan.
+- [x] **DB-302 [P0]** Buat model StatusHistory.
+- [x] **BE-308 [P0]** Implementasikan transisi DRAFT/REVISION_REQUIRED ke SUBMITTED khusus Koordinator UPT.
+- [x] **BE-309 [P0]** Jalankan perubahan status dan histori dalam transaksi Prisma.
+- [x] **BE-310 [P0]** Kunci perubahan substansi saat status SUBMITTED.
+- [x] **BE-311 [P0]** Verifikasi Koordinator UPT dan Petugas UPT berasal dari UPT yang sama.
+- [x] **FE-304 [P0]** Buat antrean validasi dan aksi pengajuan khusus Koordinator UPT.
+- [x] **FE-305 [P0]** Tampilkan timeline histori status.
+- [x] **FE-306 [P0]** Buat ConfirmDialog reusable untuk pengajuan laporan.
 
 ### Exit Minggu 4
 

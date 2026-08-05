@@ -5,10 +5,12 @@ import type { ReportCreateInput, ReportListInput, ReportUpdateInput } from "./re
 
 const editableStatuses = new Set(["DRAFT", "REVISION_REQUIRED"]);
 
+type ReportCompletenessValidator = Pick<ReportCompletenessService, "validate">;
+
 export class ReportService {
   constructor(
     private readonly repository: ReportRepository,
-    private readonly completeness?: ReportCompletenessService,
+    private readonly completeness?: ReportCompletenessValidator,
   ) {}
 
   list(input: ReportListInput) {
@@ -64,6 +66,32 @@ export class ReportService {
       throw new AppError(400, "VALIDATION_ERROR", "Laporan belum lengkap.", fields);
     }
     return { valid: true };
+  }
+
+  async submit(id: string, uptScopeId: string, actorId: string): Promise<ReportDetail> {
+    if (!this.completeness) {
+      throw new AppError(500, "INTERNAL_ERROR", "Layanan validasi laporan belum tersedia.");
+    }
+    const submitted = await this.repository.submit({
+      id,
+      uptScopeId,
+      actorId,
+      validate: async (report) => {
+        const fields = await this.completeness!.validate(report);
+        if (fields.length) {
+          throw new AppError(400, "VALIDATION_ERROR", "Laporan belum lengkap.", fields);
+        }
+      },
+    });
+    if (submitted === "NOT_FOUND") throw new AppError(404, "NOT_FOUND", "Laporan tidak ditemukan.");
+    if (submitted === "INVALID_STATUS") {
+      throw new AppError(
+        409,
+        "REPORT_INVALID_STATUS",
+        "Laporan hanya dapat diajukan dari status DRAFT atau REVISION_REQUIRED.",
+      );
+    }
+    return submitted;
   }
 
   async update(id: string, input: ReportUpdateInput): Promise<ReportDetail> {

@@ -12,7 +12,9 @@ import { AttachmentService } from "./attachment.service.js";
 
 type StorageCall = { storageKey: string; sourcePath: string };
 
-function repository(status: "DRAFT" | "SUBMITTED" = "DRAFT"): AttachmentRepository {
+function repository(
+  status: "DRAFT" | "SUBMITTED" | "REVISION_REQUIRED" | "REVIEWED" | "APPROVED" = "DRAFT",
+): AttachmentRepository {
   return {
     findReportForUpload: async () => ({
       id: "report-1",
@@ -40,7 +42,11 @@ function repository(status: "DRAFT" | "SUBMITTED" = "DRAFT"): AttachmentReposito
 test("attachment upload rejects a file MIME type outside the allowlist", async () => {
   const service = new AttachmentService(
     repository(),
-    { write: async () => undefined, read: async () => process.stdin as unknown as ReadStream, delete: async () => undefined },
+    {
+      write: async () => undefined,
+      read: async () => process.stdin as unknown as ReadStream,
+      delete: async () => undefined,
+    },
     1_024,
   );
 
@@ -64,7 +70,11 @@ test("attachment upload rejects a file MIME type outside the allowlist", async (
 test("attachment upload rejects a file larger than the configured limit", async () => {
   const service = new AttachmentService(
     repository(),
-    { write: async () => undefined, read: async () => process.stdin as unknown as ReadStream, delete: async () => undefined },
+    {
+      write: async () => undefined,
+      read: async () => process.stdin as unknown as ReadStream,
+      delete: async () => undefined,
+    },
     10,
   );
 
@@ -97,7 +107,7 @@ test("attachment upload validates file signature then writes a random storage ke
         writes.push({ storageKey, sourcePath });
       },
       read: async () => process.stdin as unknown as ReadStream,
-    delete: async () => undefined,
+      delete: async () => undefined,
     },
     1_024,
   );
@@ -131,7 +141,11 @@ test("attachment download cannot resolve an attachment outside the UPT scope", a
         return null;
       },
     },
-    { write: async () => undefined, read: async () => process.stdin as unknown as ReadStream, delete: async () => undefined },
+    {
+      write: async () => undefined,
+      read: async () => process.stdin as unknown as ReadStream,
+      delete: async () => undefined,
+    },
     1_024,
   );
 
@@ -143,25 +157,31 @@ test("attachment download cannot resolve an attachment outside the UPT scope", a
 });
 
 test("attachment upload is locked once a report is submitted", async () => {
-  const service = new AttachmentService(
-    repository("SUBMITTED"),
-    { write: async () => undefined, read: async () => process.stdin as unknown as ReadStream, delete: async () => undefined },
-    1_024,
-  );
+  for (const status of ["SUBMITTED", "REVIEWED", "APPROVED"] as const) {
+    const service = new AttachmentService(
+      repository(status),
+      {
+        write: async () => undefined,
+        read: async () => process.stdin as unknown as ReadStream,
+        delete: async () => undefined,
+      },
+      1_024,
+    );
 
-  await assert.rejects(
-    () =>
-      service.upload({
-        reportId: "report-1",
-        uptScopeId: "upt-1",
-        actorId: "user-1",
-        file: {
-          filepath: "/unused",
-          originalFilename: "bukti.pdf",
-          mimetype: "application/pdf",
-          size: 10,
-        },
-      }),
-    (error: unknown) => error instanceof AppError && error.code === "REPORT_LOCKED",
-  );
+    await assert.rejects(
+      () =>
+        service.upload({
+          reportId: "report-1",
+          uptScopeId: "upt-1",
+          actorId: "user-1",
+          file: {
+            filepath: "/unused",
+            originalFilename: "bukti.pdf",
+            mimetype: "application/pdf",
+            size: 10,
+          },
+        }),
+      (error: unknown) => error instanceof AppError && error.code === "REPORT_LOCKED",
+    );
+  }
 });

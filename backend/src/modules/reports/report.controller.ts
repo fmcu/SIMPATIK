@@ -18,6 +18,18 @@ export class ReportController {
     );
   };
 
+  submit = async (request: Request, response: Response): Promise<void> => {
+    const authRequest = request as AuthRequest;
+    const uptScopeId = authRequest.uptScopeId;
+    if (!uptScopeId) {
+      throw new AppError(403, "UPT_SCOPE_FORBIDDEN", "Akun belum memiliki penempatan UPT.");
+    }
+    sendData(
+      response,
+      await this.service.submit(routeParam(request, "id"), uptScopeId, authRequest.auth!.user.id),
+    );
+  };
+
   list = async (request: Request, response: Response): Promise<void> => {
     const query = request.query as unknown as {
       page: number;

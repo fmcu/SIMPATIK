@@ -269,6 +269,7 @@ model StatusHistory {
   actor      User          @relation(fields: [actorId], references: [id], onDelete: Restrict)
 
   @@index([reportId, createdAt])
+  @@index([reportId, toStatus, createdAt])
 }
 
 model AuditLog {

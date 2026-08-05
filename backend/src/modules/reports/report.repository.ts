@@ -110,6 +110,12 @@ export interface ReportRepository {
     items: ReportItemUpdateInput[];
     actorId: string;
   }): Promise<ReportDetail | null>;
+  submit(input: {
+    id: string;
+    uptScopeId: string;
+    actorId: string;
+    validate: (report: ReportDetail) => Promise<void>;
+  }): Promise<ReportDetail | "NOT_FOUND" | "INVALID_STATUS">;
 }
 
 function whereForScope(id: string, uptScopeId?: string): Prisma.ReportWhereInput {
@@ -233,6 +239,44 @@ export function createReportRepository(database: PrismaClient): ReportRepository
           },
         });
         return transaction.report.findUnique({ where: { id }, select: reportDetailSelect });
+      });
+    },
+    async submit({ id, uptScopeId, actorId, validate }) {
+      return database.$transaction(async (transaction) => {
+        const report = await transaction.report.findFirst({
+          where: { id, uptId: uptScopeId },
+          select: reportDetailSelect,
+        });
+        if (!report) return "NOT_FOUND";
+        if (report.status !== "DRAFT" && report.status !== "REVISION_REQUIRED") {
+          return "INVALID_STATUS";
+        }
+
+        await validate(report);
+        const updated = await transaction.report.updateMany({
+          where: { id, uptId: uptScopeId, status: { in: ["DRAFT", "REVISION_REQUIRED"] } },
+          data: { status: "SUBMITTED", submittedAt: new Date() },
+        });
+        if (updated.count !== 1) return "INVALID_STATUS";
+
+        await transaction.statusHistory.create({
+          data: { reportId: id, fromStatus: report.status, toStatus: "SUBMITTED", actorId },
+        });
+        await transaction.auditLog.create({
+          data: {
+            actorId,
+            action: "REPORT_SUBMITTED",
+            entityType: "Report",
+            entityId: id,
+            metadata: { fromStatus: report.status, toStatus: "SUBMITTED", uptId: uptScopeId },
+          },
+        });
+        const detail = await transaction.report.findUnique({
+          where: { id },
+          select: reportDetailSelect,
+        });
+        if (!detail) throw new Error("Laporan yang diajukan tidak ditemukan.");
+        return detail;
       });
     },
   };

@@ -64,6 +64,11 @@ function repository(overrides: Partial<ReportRepository> = {}): ReportRepository
     exists: async () => false,
     createDraft: async () => report(),
     updateDraft: async () => report("DRAFT", 2),
+    submit: async ({ validate }) => {
+      const draft = report();
+      await validate(draft);
+      return { ...draft, status: "SUBMITTED", submittedAt: new Date() };
+    },
     ...overrides,
   };
 }
@@ -177,18 +182,64 @@ test("report list forwards pagination, filters, and UPT scope", async () => {
   });
 });
 
-test("report rejects updates after submission", async () => {
-  const service = new ReportService(repository({ findById: async () => report("SUBMITTED") }));
-  await assert.rejects(
-    () =>
-      service.update("report-1", {
-        version: 1,
-        items: [{ indicatorId: "indicator-1", value: "10" }],
-        uptScopeId: "upt-a",
-        actorId: "user-1",
-      }),
-    (error: unknown) => error instanceof AppError && error.code === "REPORT_LOCKED",
+test("report submits a complete DRAFT through the transactional repository", async () => {
+  let received: Parameters<ReportRepository["submit"]>[0] | undefined;
+  const completeness = { validate: async () => [] };
+  const service = new ReportService(
+    repository({
+      submit: async (input) => {
+        received = input;
+        const draft = report();
+        await input.validate(draft);
+        return { ...draft, status: "SUBMITTED", submittedAt: new Date() };
+      },
+    }),
+    completeness,
   );
+
+  const submitted = await service.submit("report-1", "upt-a", "coordinator-1");
+
+  assert.equal(submitted.status, "SUBMITTED");
+  assert.equal(received?.uptScopeId, "upt-a");
+  assert.equal(received?.actorId, "coordinator-1");
+});
+
+test("report rejects an incomplete submission", async () => {
+  const service = new ReportService(repository(), {
+    validate: async () => [{ field: "items.0.value", message: "Nilai wajib diisi." }],
+  });
+
+  await assert.rejects(
+    () => service.submit("report-1", "upt-a", "coordinator-1"),
+    (error: unknown) => error instanceof AppError && error.code === "VALIDATION_ERROR",
+  );
+});
+
+test("report rejects submission from an invalid source status", async () => {
+  const service = new ReportService(repository({ submit: async () => "INVALID_STATUS" }), {
+    validate: async () => [],
+  });
+
+  await assert.rejects(
+    () => service.submit("report-1", "upt-a", "coordinator-1"),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
+  );
+});
+
+test("report rejects updates after submission", async () => {
+  for (const status of ["SUBMITTED", "REVIEWED", "APPROVED"] as const) {
+    const service = new ReportService(repository({ findById: async () => report(status) }));
+    await assert.rejects(
+      () =>
+        service.update("report-1", {
+          version: 1,
+          items: [{ indicatorId: "indicator-1", value: "10" }],
+          uptScopeId: "upt-a",
+          actorId: "user-1",
+        }),
+      (error: unknown) => error instanceof AppError && error.code === "REPORT_LOCKED",
+    );
+  }
 });
 
 test("report rejects stale draft version", async () => {

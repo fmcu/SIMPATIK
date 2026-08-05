@@ -39,6 +39,9 @@ function controller(): ReportControllerHandlers {
     detail: async (_request, response) => {
       response.json({ data: {}, meta: {} });
     },
+    submit: async (_request, response) => {
+      response.json({ data: {}, meta: {} });
+    },
     validateCompleteness: async (_request, response) => {
       response.json({ data: { valid: true }, meta: {} });
     },
@@ -73,6 +76,17 @@ test("report routes reject Koordinator UPT draft updates", async () => {
 
   assert.equal(response.status, 403);
   assert.equal(response.body.error.code, "ROLE_NOT_ALLOWED");
+});
+
+test("report routes allow only Koordinator UPT to submit", async () => {
+  const coordinator = await request(app("KOORDINATOR_UPT", "upt-a")).post(
+    "/api/reports/report-1/submit",
+  );
+  const petugas = await request(app("PETUGAS_UPT", "upt-a")).post("/api/reports/report-1/submit");
+
+  assert.equal(coordinator.status, 200);
+  assert.equal(petugas.status, 403);
+  assert.equal(petugas.body.error.code, "ROLE_NOT_ALLOWED");
 });
 
 test("report routes reject an UPT list filter for another UPT", async () => {

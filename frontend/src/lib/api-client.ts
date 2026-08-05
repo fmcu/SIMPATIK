@@ -263,7 +263,8 @@ async function upload<T>(
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
     };
-    xhr.onerror = () => reject(new ApiClientError(0, "Server belum dapat dihubungi.", "NETWORK_ERROR"));
+    xhr.onerror = () =>
+      reject(new ApiClientError(0, "Server belum dapat dihubungi.", "NETWORK_ERROR"));
     xhr.onload = () => {
       let payload: unknown = null;
       try {
@@ -402,6 +403,7 @@ export const apiClient = {
     create: (body: ReportCreateInput) => request<Report>("/reports", { method: "POST", body }),
     update: (id: string, body: ReportUpdateInput) =>
       request<Report>(`/reports/${id}`, { method: "PATCH", body }),
+    submit: (id: string) => request<Report>(`/reports/${id}/submit`, { method: "POST" }),
     validateCompleteness: (id: string) =>
       request<{ valid: true }>(`/reports/${id}/completeness`, { method: "GET", cache: "no-store" }),
   },

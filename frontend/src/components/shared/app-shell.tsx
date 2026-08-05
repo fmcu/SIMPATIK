@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
+  CheckCircle2,
   ChevronDown,
   LayoutDashboard,
   Menu,
@@ -78,9 +79,20 @@ const navigation: NavigationItem[] = [
     icon: ShieldCheck,
     roles: ["PIMPINAN", "PRODUCT_OWNER", "PETUGAS_KANWIL", "KOORDINATOR_UPT", "PETUGAS_UPT"],
   },
+  {
+    label: "Validasi laporan",
+    href: "/reports/validation",
+    icon: CheckCircle2,
+    roles: ["KOORDINATOR_UPT"],
+  },
   { label: "Pengguna", href: "/users", icon: Users, roles: ["ADMIN_SIMPATIK"] },
   { label: "UPT", href: "/upts", icon: Building2, roles: ["ADMIN_SIMPATIK"] },
-  { label: "Periode", href: "/periods", icon: CalendarDays, roles: ["ADMIN_SIMPATIK", "PRODUCT_OWNER"] },
+  {
+    label: "Periode",
+    href: "/periods",
+    icon: CalendarDays,
+    roles: ["ADMIN_SIMPATIK", "PRODUCT_OWNER"],
+  },
   {
     label: "Pengaturan",
     href: "/settings",

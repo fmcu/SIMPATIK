@@ -27,7 +27,7 @@ const reportReaders = [
 
 export type ReportControllerHandlers = Pick<
   ReportController,
-  "list" | "create" | "detail" | "update" | "validateCompleteness"
+  "list" | "create" | "detail" | "submit" | "update" | "validateCompleteness"
 >;
 
 type ReportRouterDependencies = {
@@ -42,7 +42,9 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
     new ReportController(
       new ReportService(
         createReportRepository(prisma),
-        new ReportCompletenessService(new ReportDocumentValidator(createDocumentRepository(prisma))),
+        new ReportCompletenessService(
+          new ReportDocumentValidator(createDocumentRepository(prisma)),
+        ),
       ),
     );
   const session = dependencies.requireSession ?? requireSession;
@@ -80,6 +82,14 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
     asyncHandler(controller.validateCompleteness),
   );
   router.use("/:id/attachments", createReportAttachmentRouter());
+  router.post(
+    "/:id/submit",
+    session,
+    requireRole("KOORDINATOR_UPT"),
+    enforceUptScope,
+    validate(reportIdParamsSchema, "params"),
+    asyncHandler(controller.submit),
+  );
   router.patch(
     "/:id",
     session,
