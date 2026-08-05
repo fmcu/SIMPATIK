@@ -281,14 +281,14 @@ Task selesai jika:
 
 - [x] **BE-405 [P0]** Implementasikan transisi SUBMITTED ke REVIEWED khusus Petugas Kanwil.
 - [x] **BE-406 [P0]** Simpan reviewer dan waktu penyelesaian reviu.
-- [ ] **BE-407 [P0]** Cegah perubahan laporan APPROVED.
-- [ ] **BE-408 [P0]** Implementasikan transisi REVIEWED ke APPROVED khusus Product Owner.
-- [ ] **BE-409 [P0]** Simpan approver dan waktu persetujuan akhir.
+- [x] **BE-407 [P0]** Cegah perubahan laporan APPROVED.
+- [x] **BE-408 [P0]** Implementasikan transisi REVIEWED ke APPROVED khusus Product Owner.
+- [x] **BE-409 [P0]** Simpan approver dan waktu persetujuan akhir.
 - [x] **FE-405 [P0]** Buat aksi tandai selesai direviu untuk Petugas Kanwil.
-- [ ] **FE-406 [P0]** Buat antrean persetujuan dan ConfirmDialog untuk Product Owner.
-- [ ] **QA-401 [P0]** Test seluruh transisi valid dan tidak valid.
+- [x] **FE-406 [P0]** Buat antrean persetujuan dan ConfirmDialog untuk Product Owner.
+- [x] **QA-401 [P0]** Test seluruh transisi valid dan tidak valid.
 - [x] **QA-402 [P0]** Test hanya Petugas Kanwil yang dapat meminta revisi/menandai REVIEWED.
-- [ ] **QA-403 [P0]** Test hanya Product Owner yang dapat menyetujui laporan REVIEWED.
+- [x] **QA-403 [P0]** Test hanya Product Owner yang dapat menyetujui laporan REVIEWED.
 
 ### Exit Minggu 5
 

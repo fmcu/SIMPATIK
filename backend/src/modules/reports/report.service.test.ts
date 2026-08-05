@@ -20,6 +20,7 @@ function report(status: ReportStatus = "DRAFT", version = 1): ReportDetail {
     reviewedAt: null,
     approvedAt: null,
     reviewedBy: null,
+    approvedBy: null,
     upt: { id: "upt-a", code: "UPT-A", name: "UPT A" },
     period: {
       id: "period-1",
@@ -72,8 +73,10 @@ function repository(overrides: Partial<ReportRepository> = {}): ReportRepository
     },
     addReviewComment: async () => report("SUBMITTED"),
     requestRevision: async () => report("REVISION_REQUIRED"),
-    markReviewed: async () => report("REVIEWED"),
-    ...overrides,
+     markReviewed: async () => report("REVIEWED"),
+     approve: async () => report("APPROVED"),
+     ...overrides,
+
   };
 }
 
@@ -298,6 +301,32 @@ test("report marks SUBMITTED as REVIEWED with its reviewer", async () => {
   assert.deepEqual(received, { id: "report-1", actorId: "kanwil-1" });
 });
 
+test("report approves REVIEWED with its approver", async () => {
+  let received: Parameters<ReportRepository["approve"]>[0] | undefined;
+  const service = new ReportService(
+    repository({
+      approve: async (input) => {
+        received = input;
+        return report("APPROVED");
+      },
+    }),
+  );
+
+  const approved = await service.approve("report-1", "owner-1");
+
+  assert.equal(approved.status, "APPROVED");
+  assert.deepEqual(received, { id: "report-1", actorId: "owner-1" });
+});
+
+test("report rejects approval outside REVIEWED", async () => {
+  const service = new ReportService(repository({ approve: async () => "INVALID_STATUS" }));
+
+  await assert.rejects(
+    () => service.approve("report-1", "owner-1"),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
+  );
+});
+
 test("report rejects review completion outside SUBMITTED", async () => {
   const service = new ReportService(repository({ markReviewed: async () => "INVALID_STATUS" }));
 
@@ -305,6 +334,32 @@ test("report rejects review completion outside SUBMITTED", async () => {
     () => service.markReviewed("report-1", "kanwil-1"),
     (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
   );
+});
+
+test("report rejects all workflow mutations after approval", async () => {
+  const service = new ReportService(
+    repository({
+      findById: async () => report("APPROVED"),
+      submit: async () => "INVALID_STATUS",
+      addReviewComment: async () => "INVALID_STATUS",
+      requestRevision: async () => "INVALID_STATUS",
+      markReviewed: async () => "INVALID_STATUS",
+      approve: async () => "INVALID_STATUS",
+    }),
+    { validate: async () => [] },
+  );
+
+  await assert.rejects(() => service.update("report-1", {
+    version: 1,
+    items: [{ indicatorId: "indicator-1", value: "10" }],
+    uptScopeId: "upt-a",
+    actorId: "user-1",
+  }), (error: unknown) => error instanceof AppError && error.code === "REPORT_LOCKED");
+  await assert.rejects(() => service.submit("report-1", "upt-a", "coordinator-1"), (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS");
+  await assert.rejects(() => service.addReviewComment("report-1", "kanwil-1", "Catatan"), (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS");
+  await assert.rejects(() => service.requestRevision("report-1", "kanwil-1", "Catatan"), (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS");
+  await assert.rejects(() => service.markReviewed("report-1", "kanwil-1"), (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS");
+  await assert.rejects(() => service.approve("report-1", "owner-1"), (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS");
 });
 
 test("report rejects updates after submission", async () => {

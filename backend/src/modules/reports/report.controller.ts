@@ -59,6 +59,13 @@ export class ReportController {
     );
   };
 
+  approve = async (request: Request, response: Response): Promise<void> => {
+    sendData(
+      response,
+      await this.service.approve(routeParam(request, "id"), (request as AuthRequest).auth!.user.id),
+    );
+  };
+
   list = async (request: Request, response: Response): Promise<void> => {
     const query = request.query as unknown as {
       page: number;

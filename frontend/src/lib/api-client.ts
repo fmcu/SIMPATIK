@@ -128,7 +128,9 @@ export type Report = {
   reviewedAt?: string | null;
   approvedAt?: string | null;
   reviewedBy?: Pick<User, "id" | "name"> | null;
+  approvedBy?: Pick<User, "id" | "name"> | null;
   upt: Pick<UPT, "id" | "code" | "name">;
+
   period: Pick<Period, "id" | "name" | "startDate" | "dueDate" | "status">;
   createdBy: Pick<User, "id" | "name">;
   _count?: { items: number };
@@ -410,6 +412,7 @@ export const apiClient = {
     requestRevision: (id: string, body: { message: string }) =>
       request<Report>(`/reports/${id}/request-revision`, { method: "POST", body }),
     markReviewed: (id: string) => request<Report>(`/reports/${id}/mark-reviewed`, { method: "POST" }),
+    approve: (id: string) => request<Report>(`/reports/${id}/approve`, { method: "POST" }),
     validateCompleteness: (id: string) =>
       request<{ valid: true }>(`/reports/${id}/completeness`, { method: "GET", cache: "no-store" }),
   },

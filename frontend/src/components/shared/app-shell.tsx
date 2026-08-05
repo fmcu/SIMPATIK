@@ -91,6 +91,13 @@ const navigation: NavigationItem[] = [
     icon: CheckCircle2,
     roles: ["PETUGAS_KANWIL"],
   },
+  {
+    label: "Persetujuan laporan",
+    href: "/reports/approval",
+    icon: CheckCircle2,
+    roles: ["PRODUCT_OWNER"],
+  },
+
   { label: "Pengguna", href: "/users", icon: Users, roles: ["ADMIN_SIMPATIK"] },
   { label: "UPT", href: "/upts", icon: Building2, roles: ["ADMIN_SIMPATIK"] },
   {

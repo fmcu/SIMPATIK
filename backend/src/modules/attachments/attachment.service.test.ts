@@ -156,6 +156,38 @@ test("attachment download cannot resolve an attachment outside the UPT scope", a
   assert.equal(receivedScope, "upt-a");
 });
 
+test("attachment deletion is locked for an APPROVED report", async () => {
+  const service = new AttachmentService(
+    {
+      ...repository("APPROVED"),
+      findById: async () => ({
+        id: "attachment-1",
+        reportItemId: null,
+        requirementId: null,
+        originalName: "bukti.pdf",
+        mimeType: "application/pdf",
+        size: 9,
+        createdAt: new Date(),
+        uploadedBy: { id: "user-1", name: "Petugas" },
+        requirement: null,
+        storageKey: "attachments/key",
+        report: { id: "report-1", status: "APPROVED" },
+      }),
+    },
+    {
+      write: async () => undefined,
+      read: async () => process.stdin as unknown as ReadStream,
+      delete: async () => undefined,
+    },
+    1_024,
+  );
+
+  await assert.rejects(
+    () => service.delete("attachment-1", "upt-1", "user-1"),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_LOCKED",
+  );
+});
+
 test("attachment upload is locked once a report is submitted", async () => {
   for (const status of ["SUBMITTED", "REVIEWED", "APPROVED"] as const) {
     const service = new AttachmentService(

@@ -51,6 +51,9 @@ function controller(): ReportControllerHandlers {
     markReviewed: async (_request, response) => {
       response.json({ data: {}, meta: {} });
     },
+    approve: async (_request, response) => {
+      response.json({ data: {}, meta: {} });
+    },
     validateCompleteness: async (_request, response) => {
       response.json({ data: { valid: true }, meta: {} });
     },
@@ -114,6 +117,18 @@ test("report routes allow only Petugas Kanwil to review", async () => {
   assert.equal(petugas.status, 403);
   assert.equal(coordinator.body.error.code, "ROLE_NOT_ALLOWED");
   assert.equal(petugas.body.error.code, "ROLE_NOT_ALLOWED");
+});
+
+test("report routes allow only Product Owner to approve", async () => {
+  const owner = await request(app("PRODUCT_OWNER")).post("/api/reports/report-1/approve");
+  const kanwil = await request(app("PETUGAS_KANWIL")).post("/api/reports/report-1/approve");
+  const admin = await request(app("ADMIN_SIMPATIK")).post("/api/reports/report-1/approve");
+
+  assert.equal(owner.status, 200);
+  assert.equal(kanwil.status, 403);
+  assert.equal(admin.status, 403);
+  assert.equal(kanwil.body.error.code, "ROLE_NOT_ALLOWED");
+  assert.equal(admin.body.error.code, "ROLE_NOT_ALLOWED");
 });
 
 test("report routes require a message for comments and revisions", async () => {

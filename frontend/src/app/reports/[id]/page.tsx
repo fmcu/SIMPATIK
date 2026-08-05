@@ -5,10 +5,12 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, Download, Pencil, RotateCcw } from "lucide-react";
 
 import { AppShell } from "@/components/shared/app-shell";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { FormField } from "@/components/shared/form-field";
 import { LoadingState } from "@/components/shared/loading-state";
 import { PageHeader } from "@/components/shared/page-header";
+import { ReportHistoryTimeline } from "@/components/shared/report-history-timeline";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,8 +39,10 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   const [denied, setDenied] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [reviewNote, setReviewNote] = useState("");
-  const [reviewError, setReviewError] = useState<string | null>(null);
-  const [reviewing, setReviewing] = useState<"comment" | "revision" | "reviewed" | null>(null);
+   const [reviewError, setReviewError] = useState<string | null>(null);
+   const [reviewing, setReviewing] = useState<"comment" | "revision" | "reviewed" | null>(null);
+   const [approving, setApproving] = useState(false);
+
 
   useEffect(() => {
     void params.then(({ id }) => setReportId(id));
@@ -69,6 +73,18 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     auth.session?.user.role === "PETUGAS_UPT" &&
     (report?.status === "DRAFT" || report?.status === "REVISION_REQUIRED");
   const canReview = auth.session?.user.role === "PETUGAS_KANWIL" && report?.status === "SUBMITTED";
+  const canApprove = auth.session?.user.role === "PRODUCT_OWNER" && report?.status === "REVIEWED";
+
+  async function approveReport() {
+    if (!report) return;
+    setApproving(true);
+    try {
+      await apiClient.reports.approve(report.id);
+      await load();
+    } finally {
+      setApproving(false);
+    }
+  }
 
   async function submitReview(action: "comment" | "revision" | "reviewed") {
     const message = reviewNote.trim();
@@ -134,18 +150,35 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                   <ArrowLeft />
                   Kembali
                 </Link>
-                {canEdit ? (
-                  <Link
-                    href={`/reports/${report.id}/edit`}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                  >
-                    <Pencil />
-                    Ubah draf
-                  </Link>
-                ) : null}
-              </>
-            }
-          />
+                 {canEdit ? (
+                   <Link
+                     href={`/reports/${report.id}/edit`}
+                     className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                   >
+                     <Pencil />
+                     Ubah draf
+                   </Link>
+                 ) : null}
+                 {canApprove ? (
+                   <ConfirmDialog
+                     trigger={
+                       <Button type="button">
+                         <CheckCircle2 />
+                         Setujui laporan
+                       </Button>
+                     }
+
+                     title="Setujui laporan?"
+                     description="Laporan akan menjadi data resmi dan tidak dapat diedit, dihapus, dikembalikan, atau diubah statusnya melalui alur biasa."
+                     confirmLabel="Ya, setujui laporan"
+                     loading={approving}
+                     onConfirm={approveReport}
+                   />
+                 ) : null}
+               </>
+             }
+           />
+
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border bg-card p-5">
               <p className="text-sm text-muted-foreground">Status</p>
@@ -169,12 +202,19 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
               <p className="text-sm text-muted-foreground">
                 Diajukan: {dateTimeLabel(report.submittedAt)}
               </p>
-              {report.reviewedAt ? (
-                <p className="text-sm text-muted-foreground">
-                  Direviu: {dateTimeLabel(report.reviewedAt)}
-                  {report.reviewedBy ? ` oleh ${report.reviewedBy.name}` : ""}
-                </p>
-              ) : null}
+               {report.reviewedAt ? (
+                 <p className="text-sm text-muted-foreground">
+                   Direviu: {dateTimeLabel(report.reviewedAt)}
+                   {report.reviewedBy ? ` oleh ${report.reviewedBy.name}` : ""}
+                 </p>
+               ) : null}
+               {report.approvedAt ? (
+                 <p className="text-sm text-muted-foreground">
+                   Disetujui: {dateTimeLabel(report.approvedAt)}
+                   {report.approvedBy ? ` oleh ${report.approvedBy.name}` : ""}
+                 </p>
+               ) : null}
+
             </div>
           </section>
           {canReview ? (
@@ -317,35 +357,14 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
               )}
             </div>
           </section>
-          <section className="rounded-xl border bg-card p-6">
-            <h2 className="text-lg font-semibold">Histori status</h2>
-            {report.histories?.length ? (
-              <ol className="mt-4 space-y-4 border-l pl-5">
-                {report.histories.map((history) => (
-                  <li key={history.id} className="relative">
-                    <span
-                      className="absolute -left-[1.7rem] top-1 size-3 rounded-full bg-primary"
-                      aria-hidden="true"
-                    />
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusBadge status={history.toStatus} />
-                      <span className="text-sm text-muted-foreground">
-                        oleh {history.actor.name} · {dateTimeLabel(history.createdAt)}
-                      </span>
-                    </div>
-                    {history.note ? (
-                      <p className="mt-2 whitespace-pre-wrap text-sm">{history.note}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="mt-4 text-sm text-muted-foreground">Belum ada histori status.</p>
-            )}
-            <p className="mt-5 text-sm text-muted-foreground">
-              Periode: {report.period.name} · Tenggat {dateLabel(report.period.dueDate)}
-            </p>
-          </section>
+           <section className="rounded-xl border bg-card p-6">
+             <h2 className="text-lg font-semibold">Histori status</h2>
+             <ReportHistoryTimeline histories={report.histories ?? []} />
+             <p className="mt-5 text-sm text-muted-foreground">
+               Periode: {report.period.name} · Tenggat {dateLabel(report.period.dueDate)}
+             </p>
+           </section>
+
         </div>
       )}
     </AppShell>

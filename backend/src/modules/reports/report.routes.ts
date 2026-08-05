@@ -37,6 +37,7 @@ export type ReportControllerHandlers = Pick<
   | "addReviewComment"
   | "requestRevision"
   | "markReviewed"
+  | "approve"
 >;
 
 type ReportRouterDependencies = {
@@ -121,6 +122,13 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
     requireRole("PETUGAS_KANWIL"),
     validate(reportIdParamsSchema, "params"),
     asyncHandler(controller.markReviewed),
+  );
+  router.post(
+    "/:id/approve",
+    session,
+    requireRole("PRODUCT_OWNER"),
+    validate(reportIdParamsSchema, "params"),
+    asyncHandler(controller.approve),
   );
   router.patch(
     "/:id",

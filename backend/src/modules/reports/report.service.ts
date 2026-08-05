@@ -133,7 +133,21 @@ export class ReportService {
     return result;
   }
 
+  async approve(id: string, actorId: string): Promise<ReportDetail> {
+    const result = await this.repository.approve({ id, actorId });
+    if (result === "NOT_FOUND") throw new AppError(404, "NOT_FOUND", "Laporan tidak ditemukan.");
+    if (result === "INVALID_STATUS") {
+      throw new AppError(
+        409,
+        "REPORT_INVALID_STATUS",
+        "Persetujuan hanya dapat diberikan pada laporan berstatus REVIEWED.",
+      );
+    }
+    return result;
+  }
+
   async update(id: string, input: ReportUpdateInput): Promise<ReportDetail> {
+
     const report = await this.detail(id, input.uptScopeId);
     if (!editableStatuses.has(report.status)) {
       throw new AppError(
