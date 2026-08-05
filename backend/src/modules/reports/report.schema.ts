@@ -33,6 +33,10 @@ export const reportUpdateSchema = z
 
 export const reportIdParamsSchema = z.object({ id: z.string().trim().min(1) });
 
+export const reviewCommentSchema = z.object({
+  message: z.string().trim().min(1, "Catatan reviu wajib diisi.").max(20_000),
+});
+
 export const reportQuerySchema = paginationQuerySchema.extend({
   periodId: z.string().trim().min(1).optional(),
   uptId: z.string().trim().min(1).optional(),

@@ -52,6 +52,7 @@ model User {
   sessions           Session[]
   accounts           Account[]
   reports            Report[]           @relation("ReportCreatedBy")
+  reviewedReports    Report[]           @relation("ReportReviewedBy")
   attachments        Attachment[]
   comments           ReviewComment[]
   histories          StatusHistory[]
@@ -192,6 +193,7 @@ model Report {
   status      ReportStatus    @default(DRAFT)
   version     Int             @default(1)
   createdById String
+  reviewedById String?
   submittedAt DateTime?
   reviewedAt  DateTime?
   approvedAt  DateTime?
@@ -200,6 +202,7 @@ model Report {
   upt         UPT             @relation(fields: [uptId], references: [id], onDelete: Restrict)
   period      ReportingPeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
   createdBy   User            @relation("ReportCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  reviewedBy  User?           @relation("ReportReviewedBy", fields: [reviewedById], references: [id], onDelete: Restrict)
   items       ReportItem[]
   attachments Attachment[]
   comments    ReviewComment[]

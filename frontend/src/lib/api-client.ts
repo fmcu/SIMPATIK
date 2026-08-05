@@ -127,6 +127,7 @@ export type Report = {
   submittedAt: string | null;
   reviewedAt?: string | null;
   approvedAt?: string | null;
+  reviewedBy?: Pick<User, "id" | "name"> | null;
   upt: Pick<UPT, "id" | "code" | "name">;
   period: Pick<Period, "id" | "name" | "startDate" | "dueDate" | "status">;
   createdBy: Pick<User, "id" | "name">;
@@ -404,6 +405,11 @@ export const apiClient = {
     update: (id: string, body: ReportUpdateInput) =>
       request<Report>(`/reports/${id}`, { method: "PATCH", body }),
     submit: (id: string) => request<Report>(`/reports/${id}/submit`, { method: "POST" }),
+    addReviewComment: (id: string, body: { message: string }) =>
+      request<Report>(`/reports/${id}/comments`, { method: "POST", body }),
+    requestRevision: (id: string, body: { message: string }) =>
+      request<Report>(`/reports/${id}/request-revision`, { method: "POST", body }),
+    markReviewed: (id: string) => request<Report>(`/reports/${id}/mark-reviewed`, { method: "POST" }),
     validateCompleteness: (id: string) =>
       request<{ valid: true }>(`/reports/${id}/completeness`, { method: "GET", cache: "no-store" }),
   },

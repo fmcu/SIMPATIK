@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Download, Pencil } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Download, Pencil, RotateCcw } from "lucide-react";
 
 import { AppShell } from "@/components/shared/app-shell";
 import { EmptyState } from "@/components/shared/empty-state";
+import { FormField } from "@/components/shared/form-field";
 import { LoadingState } from "@/components/shared/loading-state";
 import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiClientError, apiClient, type Report, type ReportAttachment } from "@/lib/api-client";
 import { dateLabel, errorMessage } from "@/lib/admin-helpers";
 import { useRequireSession } from "@/lib/auth-provider";
@@ -34,6 +36,9 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   const [error, setError] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [reviewNote, setReviewNote] = useState("");
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<"comment" | "revision" | "reviewed" | null>(null);
 
   useEffect(() => {
     void params.then(({ id }) => setReportId(id));
@@ -63,6 +68,28 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   const canEdit =
     auth.session?.user.role === "PETUGAS_UPT" &&
     (report?.status === "DRAFT" || report?.status === "REVISION_REQUIRED");
+  const canReview = auth.session?.user.role === "PETUGAS_KANWIL" && report?.status === "SUBMITTED";
+
+  async function submitReview(action: "comment" | "revision" | "reviewed") {
+    const message = reviewNote.trim();
+    if (!report || ((action === "comment" || action === "revision") && !message)) {
+      setReviewError("Catatan reviu wajib diisi.");
+      return;
+    }
+    setReviewing(action);
+    setReviewError(null);
+    try {
+      if (action === "comment") await apiClient.reports.addReviewComment(report.id, { message });
+      else if (action === "revision") await apiClient.reports.requestRevision(report.id, { message });
+      else await apiClient.reports.markReviewed(report.id);
+      setReviewNote("");
+      await load();
+    } catch (reviewActionError) {
+      setReviewError(errorMessage(reviewActionError));
+    } finally {
+      setReviewing(null);
+    }
+  }
 
   async function downloadAttachment(attachment: ReportAttachment) {
     setDownloading(attachment.id);
@@ -142,8 +169,71 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
               <p className="text-sm text-muted-foreground">
                 Diajukan: {dateTimeLabel(report.submittedAt)}
               </p>
+              {report.reviewedAt ? (
+                <p className="text-sm text-muted-foreground">
+                  Direviu: {dateTimeLabel(report.reviewedAt)}
+                  {report.reviewedBy ? ` oleh ${report.reviewedBy.name}` : ""}
+                </p>
+              ) : null}
             </div>
           </section>
+          {canReview ? (
+            <form
+              className="space-y-5 rounded-xl border bg-card p-6"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitReview("comment");
+              }}
+              noValidate
+            >
+              <div>
+                <h2 className="text-lg font-semibold">Reviu laporan</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Tambahkan catatan untuk reviu atau sebagai alasan permintaan revisi.
+                </p>
+              </div>
+              {reviewError ? (
+                <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+                  {reviewError}
+                </p>
+              ) : null}
+              <FormField id="review-note" label="Catatan reviu" required error={undefined}>
+                <Textarea
+                  id="review-note"
+                  value={reviewNote}
+                  onChange={(event) => {
+                    setReviewNote(event.target.value);
+                    if (reviewError) setReviewError(null);
+                  }}
+                  disabled={Boolean(reviewing)}
+                  required
+                  aria-invalid={Boolean(reviewError)}
+                />
+              </FormField>
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button type="submit" variant="outline" disabled={Boolean(reviewing)}>
+                  {reviewing === "comment" ? "Menyimpan..." : "Simpan catatan"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={Boolean(reviewing)}
+                  onClick={() => void submitReview("revision")}
+                >
+                  <RotateCcw />
+                  {reviewing === "revision" ? "Meminta revisi..." : "Minta revisi"}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={Boolean(reviewing)}
+                  onClick={() => void submitReview("reviewed")}
+                >
+                  <CheckCircle2 />
+                  {reviewing === "reviewed" ? "Menyimpan..." : "Tandai selesai direviu"}
+                </Button>
+              </div>
+            </form>
+          ) : null}
           <section className="space-y-4 rounded-xl border bg-card p-6">
             <h2 className="text-lg font-semibold">Indikator</h2>
             {report.items?.length ? (

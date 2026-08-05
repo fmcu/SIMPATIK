@@ -94,6 +94,45 @@ export class ReportService {
     return submitted;
   }
 
+  async addReviewComment(id: string, actorId: string, message: string): Promise<ReportDetail> {
+    const result = await this.repository.addReviewComment({ id, actorId, message });
+    if (result === "NOT_FOUND") throw new AppError(404, "NOT_FOUND", "Laporan tidak ditemukan.");
+    if (result === "INVALID_STATUS") {
+      throw new AppError(
+        409,
+        "REPORT_INVALID_STATUS",
+        "Catatan reviu hanya dapat ditambahkan pada laporan SUBMITTED.",
+      );
+    }
+    return result;
+  }
+
+  async requestRevision(id: string, actorId: string, message: string): Promise<ReportDetail> {
+    const result = await this.repository.requestRevision({ id, actorId, message });
+    if (result === "NOT_FOUND") throw new AppError(404, "NOT_FOUND", "Laporan tidak ditemukan.");
+    if (result === "INVALID_STATUS") {
+      throw new AppError(
+        409,
+        "REPORT_INVALID_STATUS",
+        "Revisi hanya dapat diminta dari laporan berstatus SUBMITTED.",
+      );
+    }
+    return result;
+  }
+
+  async markReviewed(id: string, actorId: string): Promise<ReportDetail> {
+    const result = await this.repository.markReviewed({ id, actorId });
+    if (result === "NOT_FOUND") throw new AppError(404, "NOT_FOUND", "Laporan tidak ditemukan.");
+    if (result === "INVALID_STATUS") {
+      throw new AppError(
+        409,
+        "REPORT_INVALID_STATUS",
+        "Laporan hanya dapat ditandai selesai direviu dari status SUBMITTED.",
+      );
+    }
+    return result;
+  }
+
   async update(id: string, input: ReportUpdateInput): Promise<ReportDetail> {
     const report = await this.detail(id, input.uptScopeId);
     if (!editableStatuses.has(report.status)) {

@@ -14,6 +14,7 @@ import {
   reportIdParamsSchema,
   reportQuerySchema,
   reportUpdateSchema,
+  reviewCommentSchema,
 } from "./report.schema.js";
 import { ReportService } from "./report.service.js";
 
@@ -27,7 +28,15 @@ const reportReaders = [
 
 export type ReportControllerHandlers = Pick<
   ReportController,
-  "list" | "create" | "detail" | "submit" | "update" | "validateCompleteness"
+  | "list"
+  | "create"
+  | "detail"
+  | "submit"
+  | "update"
+  | "validateCompleteness"
+  | "addReviewComment"
+  | "requestRevision"
+  | "markReviewed"
 >;
 
 type ReportRouterDependencies = {
@@ -89,6 +98,29 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
     enforceUptScope,
     validate(reportIdParamsSchema, "params"),
     asyncHandler(controller.submit),
+  );
+  router.post(
+    "/:id/comments",
+    session,
+    requireRole("PETUGAS_KANWIL"),
+    validate(reportIdParamsSchema, "params"),
+    validate(reviewCommentSchema, "body"),
+    asyncHandler(controller.addReviewComment),
+  );
+  router.post(
+    "/:id/request-revision",
+    session,
+    requireRole("PETUGAS_KANWIL"),
+    validate(reportIdParamsSchema, "params"),
+    validate(reviewCommentSchema, "body"),
+    asyncHandler(controller.requestRevision),
+  );
+  router.post(
+    "/:id/mark-reviewed",
+    session,
+    requireRole("PETUGAS_KANWIL"),
+    validate(reportIdParamsSchema, "params"),
+    asyncHandler(controller.markReviewed),
   );
   router.patch(
     "/:id",

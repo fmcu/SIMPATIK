@@ -85,6 +85,12 @@ const navigation: NavigationItem[] = [
     icon: CheckCircle2,
     roles: ["KOORDINATOR_UPT"],
   },
+  {
+    label: "Reviu Kanwil",
+    href: "/reports/review",
+    icon: CheckCircle2,
+    roles: ["PETUGAS_KANWIL"],
+  },
   { label: "Pengguna", href: "/users", icon: Users, roles: ["ADMIN_SIMPATIK"] },
   { label: "UPT", href: "/upts", icon: Building2, roles: ["ADMIN_SIMPATIK"] },
   {

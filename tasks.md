@@ -264,30 +264,30 @@ Task selesai jika:
 
 ### Antrean reviu
 
-- [ ] **BE-401 [P0]** Buat query antrean laporan SUBMITTED.
-- [ ] **FE-401 [P0]** Buat halaman antrean reviu Kanwil memakai reusable DataTable dan FilterBar.
-- [ ] **FE-402 [P0]** Buat detail laporan dengan indikator, dokumen, StatusBadge, dan timeline.
+- [x] **BE-401 [P0]** Buat query antrean laporan SUBMITTED.
+- [x] **FE-401 [P0]** Buat halaman antrean reviu Kanwil memakai reusable DataTable dan FilterBar.
+- [x] **FE-402 [P0]** Buat detail laporan dengan indikator, dokumen, StatusBadge, dan timeline.
 
 ### Catatan dan revisi
 
-- [ ] **DB-401 [P0]** Buat model ReviewComment.
-- [ ] **BE-402 [P0]** Buat endpoint catatan reviu.
-- [ ] **BE-403 [P0]** Implementasikan transisi SUBMITTED ke REVISION_REQUIRED.
-- [ ] **BE-404 [P0]** Wajibkan catatan saat meminta revisi.
-- [ ] **FE-403 [P0]** Buat form catatan dan aksi minta revisi.
-- [ ] **FE-404 [P0]** Tampilkan catatan pada halaman Petugas UPT.
+- [x] **DB-401 [P0]** Buat model ReviewComment.
+- [x] **BE-402 [P0]** Buat endpoint catatan reviu.
+- [x] **BE-403 [P0]** Implementasikan transisi SUBMITTED ke REVISION_REQUIRED.
+- [x] **BE-404 [P0]** Wajibkan catatan saat meminta revisi.
+- [x] **FE-403 [P0]** Buat form catatan dan aksi minta revisi.
+- [x] **FE-404 [P0]** Tampilkan catatan pada halaman Petugas UPT.
 
 ### Penyelesaian reviu dan persetujuan
 
-- [ ] **BE-405 [P0]** Implementasikan transisi SUBMITTED ke REVIEWED khusus Petugas Kanwil.
-- [ ] **BE-406 [P0]** Simpan reviewer dan waktu penyelesaian reviu.
+- [x] **BE-405 [P0]** Implementasikan transisi SUBMITTED ke REVIEWED khusus Petugas Kanwil.
+- [x] **BE-406 [P0]** Simpan reviewer dan waktu penyelesaian reviu.
 - [ ] **BE-407 [P0]** Cegah perubahan laporan APPROVED.
 - [ ] **BE-408 [P0]** Implementasikan transisi REVIEWED ke APPROVED khusus Product Owner.
 - [ ] **BE-409 [P0]** Simpan approver dan waktu persetujuan akhir.
-- [ ] **FE-405 [P0]** Buat aksi tandai selesai direviu untuk Petugas Kanwil.
+- [x] **FE-405 [P0]** Buat aksi tandai selesai direviu untuk Petugas Kanwil.
 - [ ] **FE-406 [P0]** Buat antrean persetujuan dan ConfirmDialog untuk Product Owner.
 - [ ] **QA-401 [P0]** Test seluruh transisi valid dan tidak valid.
-- [ ] **QA-402 [P0]** Test hanya Petugas Kanwil yang dapat meminta revisi/menandai REVIEWED.
+- [x] **QA-402 [P0]** Test hanya Petugas Kanwil yang dapat meminta revisi/menandai REVIEWED.
 - [ ] **QA-403 [P0]** Test hanya Product Owner yang dapat menyetujui laporan REVIEWED.
 
 ### Exit Minggu 5

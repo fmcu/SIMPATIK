@@ -19,6 +19,7 @@ function report(status: ReportStatus = "DRAFT", version = 1): ReportDetail {
     submittedAt: null,
     reviewedAt: null,
     approvedAt: null,
+    reviewedBy: null,
     upt: { id: "upt-a", code: "UPT-A", name: "UPT A" },
     period: {
       id: "period-1",
@@ -69,6 +70,9 @@ function repository(overrides: Partial<ReportRepository> = {}): ReportRepository
       await validate(draft);
       return { ...draft, status: "SUBMITTED", submittedAt: new Date() };
     },
+    addReviewComment: async () => report("SUBMITTED"),
+    requestRevision: async () => report("REVISION_REQUIRED"),
+    markReviewed: async () => report("REVIEWED"),
     ...overrides,
   };
 }
@@ -222,6 +226,83 @@ test("report rejects submission from an invalid source status", async () => {
 
   await assert.rejects(
     () => service.submit("report-1", "upt-a", "coordinator-1"),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
+  );
+});
+
+test("report saves a Kanwil review comment only on SUBMITTED", async () => {
+  let received: Parameters<ReportRepository["addReviewComment"]>[0] | undefined;
+  const service = new ReportService(
+    repository({
+      addReviewComment: async (input) => {
+        received = input;
+        return report("SUBMITTED");
+      },
+    }),
+  );
+
+  const updated = await service.addReviewComment("report-1", "kanwil-1", "Lengkapi narasi.");
+
+  assert.equal(updated.status, "SUBMITTED");
+  assert.deepEqual(received, {
+    id: "report-1",
+    actorId: "kanwil-1",
+    message: "Lengkapi narasi.",
+  });
+});
+
+test("report rejects a review comment outside SUBMITTED", async () => {
+  const service = new ReportService(repository({ addReviewComment: async () => "INVALID_STATUS" }));
+
+  await assert.rejects(
+    () => service.addReviewComment("report-1", "kanwil-1", "Lengkapi narasi."),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
+  );
+});
+
+test("report requests revision from SUBMITTED with a note", async () => {
+  let received: Parameters<ReportRepository["requestRevision"]>[0] | undefined;
+  const service = new ReportService(
+    repository({
+      requestRevision: async (input) => {
+        received = input;
+        return report("REVISION_REQUIRED");
+      },
+    }),
+  );
+
+  const revised = await service.requestRevision("report-1", "kanwil-1", "Lengkapi narasi.");
+
+  assert.equal(revised.status, "REVISION_REQUIRED");
+  assert.deepEqual(received, {
+    id: "report-1",
+    actorId: "kanwil-1",
+    message: "Lengkapi narasi.",
+  });
+});
+
+test("report marks SUBMITTED as REVIEWED with its reviewer", async () => {
+  let received: Parameters<ReportRepository["markReviewed"]>[0] | undefined;
+  const service = new ReportService(
+    repository({
+      markReviewed: async (input) => {
+        received = input;
+        return report("REVIEWED");
+      },
+    }),
+  );
+
+  const reviewed = await service.markReviewed("report-1", "kanwil-1");
+
+  assert.equal(reviewed.status, "REVIEWED");
+  assert.deepEqual(received, { id: "report-1", actorId: "kanwil-1" });
+});
+
+test("report rejects review completion outside SUBMITTED", async () => {
+  const service = new ReportService(repository({ markReviewed: async () => "INVALID_STATUS" }));
+
+  await assert.rejects(
+    () => service.markReviewed("report-1", "kanwil-1"),
     (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
   );
 });

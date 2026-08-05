@@ -42,6 +42,15 @@ function controller(): ReportControllerHandlers {
     submit: async (_request, response) => {
       response.json({ data: {}, meta: {} });
     },
+    addReviewComment: async (_request, response) => {
+      response.json({ data: {}, meta: {} });
+    },
+    requestRevision: async (_request, response) => {
+      response.json({ data: {}, meta: {} });
+    },
+    markReviewed: async (_request, response) => {
+      response.json({ data: {}, meta: {} });
+    },
     validateCompleteness: async (_request, response) => {
       response.json({ data: { valid: true }, meta: {} });
     },
@@ -87,6 +96,36 @@ test("report routes allow only Koordinator UPT to submit", async () => {
   assert.equal(coordinator.status, 200);
   assert.equal(petugas.status, 403);
   assert.equal(petugas.body.error.code, "ROLE_NOT_ALLOWED");
+});
+
+test("report routes allow only Petugas Kanwil to review", async () => {
+  const kanwil = await request(app("PETUGAS_KANWIL")).post(
+    "/api/reports/report-1/request-revision",
+  ).send({ message: "Lengkapi narasi." });
+  const coordinator = await request(app("KOORDINATOR_UPT", "upt-a")).post(
+    "/api/reports/report-1/request-revision",
+  ).send({ message: "Lengkapi narasi." });
+  const petugas = await request(app("PETUGAS_UPT", "upt-a")).post(
+    "/api/reports/report-1/mark-reviewed",
+  );
+
+  assert.equal(kanwil.status, 200);
+  assert.equal(coordinator.status, 403);
+  assert.equal(petugas.status, 403);
+  assert.equal(coordinator.body.error.code, "ROLE_NOT_ALLOWED");
+  assert.equal(petugas.body.error.code, "ROLE_NOT_ALLOWED");
+});
+
+test("report routes require a message for comments and revisions", async () => {
+  const comment = await request(app("PETUGAS_KANWIL")).post("/api/reports/report-1/comments").send({});
+  const revision = await request(app("PETUGAS_KANWIL"))
+    .post("/api/reports/report-1/request-revision")
+    .send({ message: "   " });
+
+  assert.equal(comment.status, 400);
+  assert.equal(revision.status, 400);
+  assert.equal(comment.body.error.code, "VALIDATION_ERROR");
+  assert.equal(revision.body.error.code, "VALIDATION_ERROR");
 });
 
 test("report routes reject an UPT list filter for another UPT", async () => {

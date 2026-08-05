@@ -34,6 +34,7 @@ const reportDetailSelect = Prisma.validator<Prisma.ReportSelect>()({
   ...reportListSelect,
   reviewedAt: true,
   approvedAt: true,
+  reviewedBy: { select: { id: true, name: true } },
   items: {
     orderBy: { indicator: { order: "asc" } },
     select: {
@@ -115,6 +116,20 @@ export interface ReportRepository {
     uptScopeId: string;
     actorId: string;
     validate: (report: ReportDetail) => Promise<void>;
+  }): Promise<ReportDetail | "NOT_FOUND" | "INVALID_STATUS">;
+  addReviewComment(input: {
+    id: string;
+    actorId: string;
+    message: string;
+  }): Promise<ReportDetail | "NOT_FOUND" | "INVALID_STATUS">;
+  requestRevision(input: {
+    id: string;
+    actorId: string;
+    message: string;
+  }): Promise<ReportDetail | "NOT_FOUND" | "INVALID_STATUS">;
+  markReviewed(input: {
+    id: string;
+    actorId: string;
   }): Promise<ReportDetail | "NOT_FOUND" | "INVALID_STATUS">;
 }
 
@@ -276,6 +291,100 @@ export function createReportRepository(database: PrismaClient): ReportRepository
           select: reportDetailSelect,
         });
         if (!detail) throw new Error("Laporan yang diajukan tidak ditemukan.");
+        return detail;
+      });
+    },
+    async addReviewComment({ id, actorId, message }) {
+      return database.$transaction(async (transaction) => {
+        const report = await transaction.report.findUnique({
+          where: { id },
+          select: { id: true, status: true },
+        });
+        if (!report) return "NOT_FOUND";
+        if (report.status !== "SUBMITTED") return "INVALID_STATUS";
+
+        await transaction.reviewComment.create({ data: { reportId: id, createdById: actorId, message } });
+        await transaction.auditLog.create({
+          data: {
+            actorId,
+            action: "REPORT_REVIEW_COMMENTED",
+            entityType: "Report",
+            entityId: id,
+            metadata: { status: report.status },
+          },
+        });
+        const detail = await transaction.report.findUnique({ where: { id }, select: reportDetailSelect });
+        if (!detail) throw new Error("Laporan yang diberi catatan tidak ditemukan.");
+        return detail;
+      });
+    },
+    async requestRevision({ id, actorId, message }) {
+      return database.$transaction(async (transaction) => {
+        const report = await transaction.report.findUnique({
+          where: { id },
+          select: { id: true, status: true },
+        });
+        if (!report) return "NOT_FOUND";
+        if (report.status !== "SUBMITTED") return "INVALID_STATUS";
+
+        const updated = await transaction.report.updateMany({
+          where: { id, status: "SUBMITTED" },
+          data: { status: "REVISION_REQUIRED" },
+        });
+        if (updated.count !== 1) return "INVALID_STATUS";
+        await transaction.reviewComment.create({ data: { reportId: id, createdById: actorId, message } });
+        await transaction.statusHistory.create({
+          data: {
+            reportId: id,
+            fromStatus: "SUBMITTED",
+            toStatus: "REVISION_REQUIRED",
+            actorId,
+            note: message,
+          },
+        });
+        await transaction.auditLog.create({
+          data: {
+            actorId,
+            action: "REPORT_REVISION_REQUESTED",
+            entityType: "Report",
+            entityId: id,
+            metadata: { fromStatus: "SUBMITTED", toStatus: "REVISION_REQUIRED" },
+          },
+        });
+        const detail = await transaction.report.findUnique({ where: { id }, select: reportDetailSelect });
+        if (!detail) throw new Error("Laporan yang dikembalikan tidak ditemukan.");
+        return detail;
+      });
+    },
+    async markReviewed({ id, actorId }) {
+      return database.$transaction(async (transaction) => {
+        const report = await transaction.report.findUnique({
+          where: { id },
+          select: { id: true, status: true },
+        });
+        if (!report) return "NOT_FOUND";
+        if (report.status !== "SUBMITTED") return "INVALID_STATUS";
+
+        const reviewedAt = new Date();
+        const updated = await transaction.report.updateMany({
+          where: { id, status: "SUBMITTED" },
+          data: { status: "REVIEWED", reviewedById: actorId, reviewedAt },
+        });
+        if (updated.count !== 1) return "INVALID_STATUS";
+        await transaction.statusHistory.create({
+          data: { reportId: id, fromStatus: "SUBMITTED", toStatus: "REVIEWED", actorId },
+        });
+        await transaction.auditLog.create({
+          data: {
+            actorId,
+            action: "REPORT_REVIEWED",
+            entityType: "Report",
+            entityId: id,
+            metadata: { fromStatus: "SUBMITTED", toStatus: "REVIEWED", reviewedAt },
+          },
+        });
+        const detail = await transaction.report.findUnique({ where: { id }, select: reportDetailSelect });
+        if (!detail) throw new Error("Laporan yang direviu tidak ditemukan.");
         return detail;
       });
     },

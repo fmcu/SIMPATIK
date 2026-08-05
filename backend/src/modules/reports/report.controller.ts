@@ -30,6 +30,35 @@ export class ReportController {
     );
   };
 
+  addReviewComment = async (request: Request, response: Response): Promise<void> => {
+    sendData(
+      response,
+      await this.service.addReviewComment(
+        routeParam(request, "id"),
+        (request as AuthRequest).auth!.user.id,
+        request.body.message,
+      ),
+    );
+  };
+
+  requestRevision = async (request: Request, response: Response): Promise<void> => {
+    sendData(
+      response,
+      await this.service.requestRevision(
+        routeParam(request, "id"),
+        (request as AuthRequest).auth!.user.id,
+        request.body.message,
+      ),
+    );
+  };
+
+  markReviewed = async (request: Request, response: Response): Promise<void> => {
+    sendData(
+      response,
+      await this.service.markReviewed(routeParam(request, "id"), (request as AuthRequest).auth!.user.id),
+    );
+  };
+
   list = async (request: Request, response: Response): Promise<void> => {
     const query = request.query as unknown as {
       page: number;
