@@ -4,6 +4,14 @@ export const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? process.env.API_URL ?? "http://localhost:4000";
 
 export type ApiFieldError = { field: string; message: string };
+export type AuditLogEntry = {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  createdAt: string;
+  actor: { id: string; name: string; email: string } | null;
+};
 export type Pagination = { page: number; pageSize: number; total: number; totalPages: number };
 export type ApiMeta = { requestId?: string; pagination?: Pagination; [key: string]: unknown };
 export type UPT = { id: string; code: string; name: string; active: boolean };
@@ -380,6 +388,9 @@ async function list<T>(
 }
 
 export const apiClient = {
+  audit: {
+    list: (params: Record<string, QueryValue> = {}) => list<AuditLogEntry>("/audit/logs", params),
+  },
   upts: {
     list: (params: Record<string, QueryValue> = {}) => list<UPT>("/upts", params),
     create: (body: UPTInput) => request<UPT>("/upts", { method: "POST", body }),

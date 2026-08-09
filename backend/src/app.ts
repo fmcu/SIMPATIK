@@ -24,6 +24,7 @@ import { createReportRouter } from "./modules/reports/report.routes.js";
 import { createAttachmentRouter } from "./modules/attachments/attachment.routes.js";
 import { createDashboardRouter } from "./modules/dashboard/dashboard.routes.js";
 import { createExportRouter } from "./modules/exports/export.routes.js";
+import { createAuditRouter } from "./modules/audit/audit.routes.js";
 import { createAuditRepository } from "./modules/shared/audit.repository.js";
 import { prisma } from "./config/prisma.js";
 
@@ -103,6 +104,7 @@ export function createApp(database?: DatabaseReadinessClient): express.Express {
   app.use("/api/attachments", createAttachmentRouter());
   app.use("/api/dashboard", createDashboardRouter());
   app.use("/api/exports", createExportRouter());
+  app.use("/api/audit", createAuditRouter());
   const audit = createAuditRepository(prisma);
   app.use("/api/indicators", createIndicatorMutationRouter(createIndicatorService(prisma, audit)));
   app.use("/api/documents", createDocumentMutationRouter(createDocumentService(prisma, audit)));
