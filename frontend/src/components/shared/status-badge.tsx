@@ -10,7 +10,7 @@ const statusLabels: Record<Status, string> = {
 
 const statusVariants: Record<Status, BadgeProps["variant"]> = {
   DRAFT: "secondary", SUBMITTED: "info", REVISION_REQUIRED: "warning", REVIEWED: "success", APPROVED: "default",
-  ACTIVE: "success", CLOSED: "secondary", INACTIVE: "warning", PENDING: "secondary", REJECTED: "warning",
+  ACTIVE: "active", CLOSED: "secondary", INACTIVE: "warning", PENDING: "secondary", REJECTED: "warning",
 };
 
 export interface StatusBadgeProps extends Omit<BadgeProps, "children"> {

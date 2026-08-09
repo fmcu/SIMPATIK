@@ -5,13 +5,13 @@ import { navigationItems } from "./role-navigation.ts";
 
 test("seven-role navigation matrix exposes only permitted menus", () => {
   const expected = {
-    PIMPINAN: ["/", "/components", "/reports"],
-    PRODUCT_OWNER: ["/", "/components", "/reports", "/reports/approval", "/periods"],
-    PETUGAS_KANWIL: ["/", "/components", "/reports", "/reports/review"],
-    KOORDINATOR_UPT: ["/", "/components", "/reports", "/reports/validation"],
-    PETUGAS_UPT: ["/", "/components", "/reports"],
-    ADMIN_SIMPATIK: ["/", "/components", "/users", "/upts", "/periods", "/settings"],
-    SYSTEM_ADMIN: ["/components", "/settings"],
+    PIMPINAN: ["/", "/reports"],
+    PRODUCT_OWNER: ["/", "/reports", "/reports/approval", "/periods"],
+    PETUGAS_KANWIL: ["/", "/reports", "/reports/review"],
+    KOORDINATOR_UPT: ["/", "/reports", "/reports/validation"],
+    PETUGAS_UPT: ["/", "/reports"],
+    ADMIN_SIMPATIK: ["/", "/users", "/upts", "/periods", "/settings"],
+    SYSTEM_ADMIN: ["/settings"],
   } as const;
 
   for (const [role, paths] of Object.entries(expected)) {
@@ -21,6 +21,13 @@ test("seven-role navigation matrix exposes only permitted menus", () => {
       role,
     );
   }
+});
+
+test("component catalog is hidden from navigation for every role", () => {
+  assert.equal(
+    navigationItems.some((item) => item.href === "/components"),
+    false,
+  );
 });
 
 test("navigation remains keyboard and responsive ready", () => {

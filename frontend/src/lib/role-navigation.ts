@@ -2,7 +2,6 @@ import type { AppRole } from "./auth-provider";
 
 export type NavigationIcon =
   | "dashboard"
-  | "components"
   | "reports"
   | "validation"
   | "review"
@@ -31,20 +30,6 @@ export const navigationItems: readonly NavigationItem[] = [
       "KOORDINATOR_UPT",
       "PETUGAS_UPT",
       "ADMIN_SIMPATIK",
-    ],
-  },
-  {
-    label: "Katalog komponen",
-    href: "/components",
-    icon: "components",
-    roles: [
-      "PIMPINAN",
-      "PRODUCT_OWNER",
-      "PETUGAS_KANWIL",
-      "KOORDINATOR_UPT",
-      "PETUGAS_UPT",
-      "ADMIN_SIMPATIK",
-      "SYSTEM_ADMIN",
     ],
   },
   {
