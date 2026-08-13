@@ -13,7 +13,19 @@ export interface EmptyStateProps {
 }
 
 export function EmptyState({ title, description, action, icon, className }: EmptyStateProps) {
-  return <section className={cn("rounded-xl border border-dashed bg-card p-8 text-center", className)} aria-live="polite"><div className="mx-auto flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">{icon ?? <Inbox className="size-5" aria-hidden="true" />}</div><h2 className="mt-4 font-semibold">{title}</h2><p className="mx-auto mt-1 max-w-md text-sm leading-6 text-muted-foreground">{description}</p>{action ? <div className="mt-5 flex justify-center">{action}</div> : null}</section>;
+  return (
+    <section
+      className={cn("rounded-xl border border-dashed bg-card p-8 text-center shadow-sm", className)}
+      aria-live="polite"
+    >
+      <div className="mx-auto flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/10">
+        {icon ?? <Inbox className="size-5" aria-hidden="true" />}
+      </div>
+      <h2 className="mt-4 font-semibold">{title}</h2>
+      <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-muted-foreground">{description}</p>
+      {action ? <div className="mt-5 flex justify-center">{action}</div> : null}
+    </section>
+  );
 }
 
 export function EmptyStateAction({ children, ...props }: React.ComponentProps<typeof Button>) {

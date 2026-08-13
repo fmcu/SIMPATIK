@@ -17,7 +17,14 @@ export interface PageHeaderProps {
   className?: string;
 }
 
-export function PageHeader({ title, description, eyebrow, breadcrumbs, actions, className }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  eyebrow,
+  breadcrumbs,
+  actions,
+  className,
+}: PageHeaderProps) {
   return (
     <header className={cn("space-y-4", className)}>
       {breadcrumbs?.length ? (
@@ -26,13 +33,20 @@ export function PageHeader({ title, description, eyebrow, breadcrumbs, actions, 
             {breadcrumbs.map((breadcrumb, index) => (
               <li key={`${breadcrumb.label}-${index}`} className="flex items-center gap-1">
                 {breadcrumb.href ? (
-                  <a className="rounded-sm underline-offset-4 hover:text-foreground hover:underline focus-visible:outline" href={breadcrumb.href}>
+                  <a
+                    className="rounded-sm underline-offset-4 hover:text-foreground hover:underline focus-visible:outline"
+                    href={breadcrumb.href}
+                  >
                     {breadcrumb.label}
                   </a>
                 ) : (
-                  <span aria-current={index === breadcrumbs.length - 1 ? "page" : undefined}>{breadcrumb.label}</span>
+                  <span aria-current={index === breadcrumbs.length - 1 ? "page" : undefined}>
+                    {breadcrumb.label}
+                  </span>
                 )}
-                {index < breadcrumbs.length - 1 ? <ChevronRight className="size-4" aria-hidden="true" /> : null}
+                {index < breadcrumbs.length - 1 ? (
+                  <ChevronRight className="size-4" aria-hidden="true" />
+                ) : null}
               </li>
             ))}
           </ol>
@@ -40,11 +54,21 @@ export function PageHeader({ title, description, eyebrow, breadcrumbs, actions, 
       ) : null}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          {eyebrow ? <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">{eyebrow}</p> : null}
-          <h1 className="text-2xl font-bold tracking-tight text-balance sm:text-3xl">{title}</h1>
-          {description ? <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p> : null}
+          {eyebrow ? (
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-primary">
+              {eyebrow}
+            </p>
+          ) : null}
+          <h1 className="text-2xl font-extrabold tracking-tight text-balance sm:text-3xl">
+            {title}
+          </h1>
+          {description ? (
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+          ) : null}
         </div>
-        {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+        ) : null}
       </div>
     </header>
   );

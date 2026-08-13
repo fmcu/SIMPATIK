@@ -2,7 +2,18 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDownToLine, CheckCircle2, Clock3, FileCheck2, FileText, Plus } from "lucide-react";
+import {
+  ArrowDownToLine,
+  ArrowRight,
+  Building2,
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
+  FileCheck2,
+  FileText,
+  Plus,
+  TriangleAlert,
+} from "lucide-react";
 
 import { AppShell } from "@/components/shared/app-shell";
 import { DashboardCard } from "@/components/shared/dashboard-card";
@@ -64,7 +75,11 @@ export default function HomePage() {
   const auth = useRequireSession();
   const role = auth.session?.user.role;
   const canCreate = role === "PETUGAS_UPT";
-  const canFilterUpt = role === "PIMPINAN" || role === "PRODUCT_OWNER" || role === "PETUGAS_KANWIL" || role === "ADMIN_SIMPATIK";
+  const canFilterUpt =
+    role === "PIMPINAN" ||
+    role === "PRODUCT_OWNER" ||
+    role === "PETUGAS_KANWIL" ||
+    role === "ADMIN_SIMPATIK";
   const [periods, setPeriods] = useState<Period[]>([]);
   const [upts, setUpts] = useState<UPT[]>([]);
   const [periodId, setPeriodId] = useState("");
@@ -108,7 +123,7 @@ export default function HomePage() {
         apiClient.reports.list({ page: 1, pageSize: 10, ...query }),
       ]);
       setPeriods(periodList.data);
-       setUpts(uptList?.data ?? []);
+      setUpts(uptList?.data ?? []);
       setPeriodId(effectivePeriodId);
       setSummary(summaryResult);
       setByUpt(byUptResult);
@@ -239,7 +254,7 @@ export default function HomePage() {
       ) : error ? (
         <LoadingState label={error} error onRetry={() => void load()} />
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <PageHeader
             eyebrow="Ringkasan pelaporan"
             title={role === "PIMPINAN" ? "Dasbor pimpinan" : "Dasbor kepatuhan"}
@@ -258,7 +273,7 @@ export default function HomePage() {
                 {canCreate ? (
                   <Link
                     href="/reports/new"
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:-translate-y-px hover:bg-primary/90 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     <Plus />
                     Buat laporan
@@ -341,36 +356,51 @@ export default function HomePage() {
             />
           ) : (
             <>
-              <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                <Link href={`/reports?periodId=${summary.period.id}`}>
+              <section
+                className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5"
+                aria-label="Ringkasan status laporan"
+              >
+                <Link
+                  className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  href={`/reports?periodId=${summary.period.id}`}
+                >
                   <DashboardCard
                     title="Total laporan"
                     value={summary.totalReports}
-                    description="drill-down daftar laporan"
+                    description="Seluruh laporan periode"
                     icon={<FileText className="size-5" />}
                   />
                 </Link>
-                <Link href={`/reports?periodId=${summary.period.id}&status=APPROVED`}>
+                <Link
+                  className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  href={`/reports?periodId=${summary.period.id}&status=APPROVED`}
+                >
                   <DashboardCard
                     title="Disetujui"
                     value={summary.approvedCount}
-                    description="data rekap resmi"
+                    description="Rekap resmi tersedia"
                     icon={<CheckCircle2 className="size-5" />}
                   />
                 </Link>
-                <Link href={`/reports?periodId=${summary.period.id}&status=SUBMITTED`}>
+                <Link
+                  className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  href={`/reports?periodId=${summary.period.id}&status=SUBMITTED`}
+                >
                   <DashboardCard
                     title="Menunggu reviu"
                     value={reportStatusCount(summary, "SUBMITTED")}
-                    description="perlu ditindaklanjuti"
+                    description="Perlu ditindaklanjuti"
                     icon={<Clock3 className="size-5" />}
                   />
                 </Link>
-                <Link href={`/reports?periodId=${summary.period.id}&status=REVISION_REQUIRED`}>
+                <Link
+                  className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  href={`/reports?periodId=${summary.period.id}&status=REVISION_REQUIRED`}
+                >
                   <DashboardCard
                     title="Perlu revisi"
                     value={reportStatusCount(summary, "REVISION_REQUIRED")}
-                    description="menunggu perbaikan"
+                    description="Menunggu perbaikan UPT"
                     icon={<FileCheck2 className="size-5" />}
                   />
                 </Link>
@@ -378,63 +408,95 @@ export default function HomePage() {
                   title="Belum mengirim"
                   value={notSentText}
                   description="UPT tanpa pengajuan"
-                  icon={<FileText className="size-5" />}
+                  icon={<Building2 className="size-5" />}
                 />
               </section>
 
-              <section className="grid gap-6 xl:grid-cols-[1fr_20rem]">
+              <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
                 <div className="min-w-0 space-y-4">
-                  <div>
-                    <h2 className="text-lg font-semibold">Status setiap UPT</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Tenggat periode: {dateLabel(summary.period.dueDate)} · Terlambat: {lateText}
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Building2 className="size-4" aria-hidden="true" />
+                    </span>
+                    <div>
+                      <h2 className="text-lg font-semibold">Status setiap UPT</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Tenggat periode: {dateLabel(summary.period.dueDate)} · Terlambat: {lateText}
+                      </p>
+                    </div>
                   </div>
                   <DataTable
                     columns={uptColumns}
                     data={latestStatus}
                     getRowId={(row) => row.upt.id}
                     caption="Status pelaporan per UPT"
-                     emptyTitle="Status UPT belum tersedia"
-                     emptyDescription="Belum ada data UPT pada filter ini."
-                     pagination={byUpt.pagination}
-                     onPageChange={setUptPage}
-                   />
+                    emptyTitle="Status UPT belum tersedia"
+                    emptyDescription="Belum ada data UPT pada filter ini."
+                    pagination={byUpt.pagination}
+                    onPageChange={setUptPage}
+                  />
                 </div>
-                <aside className="rounded-xl border bg-primary p-5 text-primary-foreground">
-                  <p className="text-sm font-semibold">Ringkasan tenggat</p>
-                  <p className="mt-4 text-3xl font-bold">{lateText}</p>
-                  <p className="mt-1 text-sm text-primary-foreground/75">UPT terlambat mengirim</p>
-                  <div className="mt-6 space-y-3 text-sm">
-                    <p className="flex justify-between gap-4">
-                      <span>Belum mengirim</span>
-                      <strong>{notSentText}</strong>
+                <aside className="relative overflow-hidden rounded-xl border border-sidebar-border bg-sidebar p-5 text-white shadow-lg">
+                  <div
+                    className="absolute -right-12 -top-12 size-36 rounded-full bg-gold/15 blur-2xl"
+                    aria-hidden="true"
+                  />
+                  <div className="relative">
+                    <div className="flex items-center gap-2">
+                      <CalendarClock className="size-4 text-gold" aria-hidden="true" />
+                      <p className="text-sm font-semibold">Ringkasan tenggat</p>
+                    </div>
+                    <p className="mt-5 text-4xl font-extrabold tracking-tight text-gold">
+                      {lateText}
                     </p>
-                    <p className="flex justify-between gap-4">
-                      <span>Total UPT</span>
-                      <strong>{byUpt.pagination?.total ?? latestStatus.length}</strong>
-                    </p>
-                    <p className="flex justify-between gap-4">
-                      <span>Tenggat</span>
-                      <strong>{dateLabel(summary.period.dueDate)}</strong>
-                    </p>
+                    <p className="mt-1 text-sm text-white/65">UPT terlambat mengirim</p>
+                    <div className="my-5 h-px bg-white/10" />
+                    <div className="space-y-3 text-sm">
+                      <p className="flex justify-between gap-4">
+                        <span className="text-white/65">Belum mengirim</span>
+                        <strong>{notSentText}</strong>
+                      </p>
+                      <p className="flex justify-between gap-4">
+                        <span className="text-white/65">Total UPT</span>
+                        <strong>{byUpt.pagination?.total ?? latestStatus.length}</strong>
+                      </p>
+                      <p className="flex justify-between gap-4">
+                        <span className="text-white/65">Tenggat</span>
+                        <strong className="text-right">{dateLabel(summary.period.dueDate)}</strong>
+                      </p>
+                    </div>
+                    {byUpt.late.length > 0 ? (
+                      <div className="mt-5 flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 p-3 text-xs leading-5 text-white/80">
+                        <TriangleAlert
+                          className="mt-0.5 size-4 shrink-0 text-gold"
+                          aria-hidden="true"
+                        />
+                        Perlu tindak lanjut agar pelaporan selesai tepat waktu.
+                      </div>
+                    ) : null}
                   </div>
                 </aside>
               </section>
 
               <section className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold">Laporan terbaru</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Drill-down dari data laporan sumber.
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <FileText className="size-4" aria-hidden="true" />
+                    </span>
+                    <div>
+                      <h2 className="text-lg font-semibold">Laporan terbaru</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Pembaruan laporan terbaru pada periode terpilih.
+                      </p>
+                    </div>
                   </div>
                   <Link
-                    className="text-sm font-semibold text-primary hover:underline"
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
                     href={`/reports?periodId=${summary.period.id}`}
                   >
                     Lihat semua
+                    <ArrowRight className="size-4" aria-hidden="true" />
                   </Link>
                 </div>
                 <DataTable
