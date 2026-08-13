@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, Check, Edit3, Plus } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Edit3, Plus } from "lucide-react";
 
 import { AppShell } from "@/components/shared/app-shell";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -15,13 +15,31 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { ApiClientError, apiClient, type Indicator, type IndicatorInput, type Period, type RequiredDocument, type RequiredDocumentInput } from "@/lib/api-client";
 import { errorMessage } from "@/lib/admin-helpers";
 import { useRequireSession } from "@/lib/auth-provider";
+
+type IndicatorInputType = "text" | "number" | "date";
+
+const documentFileTypeOptions = [
+  { value: "application/pdf", label: "PDF", extension: ".pdf" },
+  {
+    value: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    label: "Microsoft Word",
+    extension: ".docx",
+  },
+  {
+    value: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    label: "Microsoft Excel",
+    extension: ".xlsx",
+  },
+  { value: "image/png", label: "Gambar PNG", extension: ".png" },
+  { value: "image/jpeg", label: "Gambar JPG", extension: ".jpg, .jpeg" },
+] as const;
 
 const initialIndicator: IndicatorInput = {
   code: "",
@@ -45,14 +63,26 @@ function listValue<T>(value: T[] | { items?: T[]; data?: T[] } | undefined): T[]
   return value?.items ?? value?.data ?? [];
 }
 
-function objectFromJson(value: string): Record<string, unknown> | null {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
-    return parsed as Record<string, unknown>;
-  } catch {
-    return null;
-  }
+function inputTypeFromConfig(inputConfig?: Record<string, unknown> | null): IndicatorInputType {
+  const type = inputConfig?.type;
+  return type === "number" || type === "date" ? type : "text";
+}
+
+function inputTypeLabel(inputConfig?: Record<string, unknown> | null): string {
+  const type = inputTypeFromConfig(inputConfig);
+  if (type === "number") return "Angka";
+  if (type === "date") return "Tanggal";
+  return "Teks";
+}
+
+function documentFileTypeLabel(mimeType: string): string {
+  return documentFileTypeOptions.find((option) => option.value === mimeType)?.label ?? mimeType;
+}
+
+function documentFileTypeSummary(mimeTypes: string[]): string {
+  if (!mimeTypes.length) return "Pilih tipe file";
+  if (mimeTypes.length <= 2) return mimeTypes.map(documentFileTypeLabel).join(", ");
+  return `${mimeTypes.length} tipe file dipilih`;
 }
 
 export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -73,9 +103,10 @@ export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id:
   const [editingIndicator, setEditingIndicator] = useState<Indicator | null>(null);
   const [editingDocument, setEditingDocument] = useState<RequiredDocument | null>(null);
   const [indicatorForm, setIndicatorForm] = useState<IndicatorInput>(initialIndicator);
-  const [indicatorInputConfig, setIndicatorInputConfig] = useState("{}");
+  const [indicatorInputType, setIndicatorInputType] = useState<IndicatorInputType>("text");
+  const [indicatorUnit, setIndicatorUnit] = useState("");
   const [documentForm, setDocumentForm] = useState<RequiredDocumentInput>(initialDocument);
-  const [documentMimeTypes, setDocumentMimeTypes] = useState("");
+  const [documentMimeTypes, setDocumentMimeTypes] = useState<string[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [approvalId, setApprovalId] = useState<string | null>(null);
@@ -121,7 +152,8 @@ export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id:
       order: row.order,
       inputConfig: row.inputConfig ?? {},
     } : { ...initialIndicator });
-    setIndicatorInputConfig(JSON.stringify(row?.inputConfig ?? {}, null, 2));
+    setIndicatorInputType(inputTypeFromConfig(row?.inputConfig));
+    setIndicatorUnit(typeof row?.inputConfig?.unit === "string" ? row.inputConfig.unit : "");
     setFormError(null);
     setIndicatorDialog(true);
   }
@@ -137,7 +169,7 @@ export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id:
       order: row.order,
       ...(row.indicatorId ? { indicatorId: row.indicatorId } : { periodId: periodId ?? undefined }),
     } : { ...initialDocument, periodId: periodId ?? undefined });
-    setDocumentMimeTypes(row?.allowedMimeTypes.join(", ") ?? "");
+    setDocumentMimeTypes([...new Set(row?.allowedMimeTypes ?? [])]);
     setFormError(null);
     setDocumentDialog(true);
   }
@@ -148,11 +180,11 @@ export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id:
       setFormError("Kode dan nama indikator wajib diisi.");
       return;
     }
-    const inputConfig = objectFromJson(indicatorInputConfig);
-    if (!inputConfig) {
-      setFormError("Konfigurasi input harus berupa JSON object yang valid.");
-      return;
-    }
+    const inputConfig: Record<string, unknown> = { ...(editingIndicator?.inputConfig ?? {}) };
+    inputConfig.type = indicatorInputType;
+    const unit = indicatorUnit.trim();
+    if (unit) inputConfig.unit = unit;
+    else delete inputConfig.unit;
     setSaving(true);
     setFormError(null);
     try {
@@ -184,7 +216,7 @@ export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id:
       setFormError("Pilih cakupan periode atau indikator.");
       return;
     }
-    const allowedMimeTypes = documentMimeTypes.split(",").map((value) => value.trim()).filter(Boolean);
+    const allowedMimeTypes = [...new Set(documentMimeTypes)];
     if (!allowedMimeTypes.length) {
       setFormError("Minimal satu tipe file yang diizinkan wajib diisi.");
       return;
@@ -229,9 +261,20 @@ export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id:
     }
   }
 
+  function toggleDocumentMimeType(mimeType: string, checked: boolean) {
+    setDocumentMimeTypes((current) => {
+      if (checked) return current.includes(mimeType) ? current : [...current, mimeType];
+      return current.filter((value) => value !== mimeType);
+    });
+  }
+
   const indicatorColumns: DataTableColumn<Indicator>[] = [
     { id: "code", header: "Kode", cell: (row) => <span className="font-semibold">{row.code}</span> },
     { id: "name", header: "Indikator", cell: (row) => row.name },
+    { id: "inputType", header: "Jenis jawaban", cell: (row) => {
+      const unit = typeof row.inputConfig?.unit === "string" ? row.inputConfig.unit : "";
+      return unit ? `${inputTypeLabel(row.inputConfig)} (${unit})` : inputTypeLabel(row.inputConfig);
+    } },
     { id: "required", header: "Wajib", cell: (row) => row.required ? "Ya" : "Tidak" },
     { id: "order", header: "Urutan", cell: (row) => row.order },
     { id: "status", header: "Pengesahan", cell: (row) => <StatusBadge status={row.approvalStatus ?? "PENDING"} /> },
@@ -250,7 +293,7 @@ export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id:
     { id: "code", header: "Kode", cell: (row) => <span className="font-semibold">{row.code}</span> },
     { id: "name", header: "Dokumen", cell: (row) => row.name },
     { id: "scope", header: "Cakupan", cell: (row) => row.indicatorId ? indicators.find((indicator) => indicator.id === row.indicatorId)?.code ?? "Indikator" : "Periode" },
-    { id: "types", header: "Tipe file", cell: (row) => row.allowedMimeTypes.join(", ") },
+    { id: "types", header: "Tipe file", cell: (row) => row.allowedMimeTypes.map(documentFileTypeLabel).join(", ") },
     { id: "required", header: "Wajib", cell: (row) => row.required ? "Ya" : "Tidak" },
     { id: "status", header: "Pengesahan", cell: (row) => <StatusBadge status={row.approvalStatus ?? "PENDING"} /> },
     {
@@ -270,7 +313,7 @@ export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id:
         <div className="space-y-8">
           <PageHeader eyebrow="Konfigurasi periode" title={period.name} description="Kelola indikator, dokumen wajib, serta proses pengesahan Product Owner." breadcrumbs={[{ label: "Periode", href: "/periods" }, { label: period.name, href: `/periods/${period.id}` }, { label: "Indikator dan dokumen" }]} actions={<Link className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 text-sm font-semibold transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring" href={`/periods/${period.id}`}><ArrowLeft />Kembali ke detail</Link>} />
           <section className="rounded-xl border bg-card p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-muted-foreground">Status periode</p><div className="mt-2"><StatusBadge status={period.status} /></div></div><p className="text-sm text-muted-foreground">{canEdit ? "Admin dapat mengubah konfigurasi saat periode masih DRAFT." : "Product Owner dapat mengesahkan konfigurasi yang menunggu persetujuan."}</p></div></section>
-          <section className="space-y-4"><PageHeader title="Indikator" description="Item pelaporan dengan konfigurasi input yang digunakan dalam periode ini." actions={canEdit && period.status === "DRAFT" ? <Button type="button" onClick={() => openIndicator()}><Plus />Tambah indikator</Button> : undefined} /><DataTable columns={indicatorColumns} data={indicators} getRowId={(row) => row.id} caption="Daftar indikator" emptyTitle="Indikator belum tersedia" emptyDescription="Tambahkan indikator untuk mulai mengonfigurasi periode." /></section>
+          <section className="space-y-4"><PageHeader title="Indikator" description="Item pelaporan beserta jenis jawaban yang harus diisi oleh UPT." actions={canEdit && period.status === "DRAFT" ? <Button type="button" onClick={() => openIndicator()}><Plus />Tambah indikator</Button> : undefined} /><DataTable columns={indicatorColumns} data={indicators} getRowId={(row) => row.id} caption="Daftar indikator" emptyTitle="Indikator belum tersedia" emptyDescription="Tambahkan indikator untuk mulai mengonfigurasi periode." /></section>
           <section className="space-y-4"><PageHeader title="Dokumen wajib" description="Dokumen pendukung, tipe file, batas ukuran, dan cakupan validasi laporan." actions={canEdit && period.status === "DRAFT" ? <Button type="button" onClick={() => openDocument()}><Plus />Tambah dokumen</Button> : undefined} /><DataTable columns={documentColumns} data={documents} getRowId={(row) => row.id ?? row.code} caption="Daftar dokumen wajib" emptyTitle="Dokumen wajib belum tersedia" emptyDescription="Tambahkan dokumen wajib tingkat periode atau indikator." /></section>
           <Dialog open={indicatorDialog} onOpenChange={setIndicatorDialog}>
             <DialogContent>
@@ -280,7 +323,18 @@ export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id:
                 <FormField id="indicator-code" label="Kode" required><Input id="indicator-code" value={indicatorForm.code} onChange={(event) => setIndicatorForm((current) => ({ ...current, code: event.target.value }))} disabled={saving} /></FormField>
                 <FormField id="indicator-name" label="Nama indikator" required><Input id="indicator-name" value={indicatorForm.name} onChange={(event) => setIndicatorForm((current) => ({ ...current, name: event.target.value }))} disabled={saving} /></FormField>
                 <div className="grid gap-5 sm:grid-cols-2"><FormField id="indicator-order" label="Urutan" required><Input id="indicator-order" type="number" min="0" value={indicatorForm.order} onChange={(event) => setIndicatorForm((current) => ({ ...current, order: Number(event.target.value) }))} disabled={saving} /></FormField><label className="flex items-center gap-3 self-end pb-2 text-sm font-medium" htmlFor="indicator-required"><Checkbox id="indicator-required" checked={indicatorForm.required} onChange={(event) => setIndicatorForm((current) => ({ ...current, required: event.target.checked }))} disabled={saving} />Indikator wajib</label></div>
-                <FormField id="indicator-input-config" label="Konfigurasi input (JSON)" description="Contoh: {&quot;type&quot;:&quot;number&quot;,&quot;unit&quot;:&quot;%&quot;}"><Textarea id="indicator-input-config" value={indicatorInputConfig} onChange={(event) => setIndicatorInputConfig(event.target.value)} rows={6} spellCheck={false} disabled={saving} /></FormField>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <FormField id="indicator-input-type" label="Jenis jawaban" required description="Pilih bentuk jawaban yang harus diisi oleh UPT.">
+                    <Select id="indicator-input-type" value={indicatorInputType} onChange={(event) => setIndicatorInputType(event.target.value as IndicatorInputType)} disabled={saving}>
+                      <option value="text">Teks</option>
+                      <option value="number">Angka</option>
+                      <option value="date">Tanggal</option>
+                    </Select>
+                  </FormField>
+                  <FormField id="indicator-unit" label="Satuan" description="Opsional. Contoh: %, orang, dokumen.">
+                    <Input id="indicator-unit" value={indicatorUnit} onChange={(event) => setIndicatorUnit(event.target.value)} placeholder="Contoh: orang" disabled={saving} />
+                  </FormField>
+                </div>
                 <DialogFooter><Button type="button" variant="outline" onClick={() => setIndicatorDialog(false)} disabled={saving}>Batal</Button><Button type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Button></DialogFooter>
               </Form>
             </DialogContent>
@@ -293,7 +347,44 @@ export default function PeriodIndicatorsPage({ params }: { params: Promise<{ id:
                 <FormField id="document-code" label="Kode" required><Input id="document-code" value={documentForm.code} onChange={(event) => setDocumentForm((current) => ({ ...current, code: event.target.value }))} disabled={saving} /></FormField>
                 <FormField id="document-name" label="Nama dokumen" required><Input id="document-name" value={documentForm.name} onChange={(event) => setDocumentForm((current) => ({ ...current, name: event.target.value }))} disabled={saving} /></FormField>
                 <FormField id="document-indicator" label="Indikator" description="Kosongkan untuk dokumen tingkat periode."><Select id="document-indicator" value={documentForm.indicatorId ?? ""} onChange={(event) => setDocumentForm((current) => ({ ...current, indicatorId: event.target.value || undefined, periodId: event.target.value ? undefined : periodId ?? undefined }))} disabled={saving || Boolean(editingDocument)}><option value="">Semua periode</option>{indicators.map((indicator) => <option key={indicator.id} value={indicator.id}>{indicator.code} — {indicator.name}</option>)}</Select></FormField>
-                <FormField id="document-types" label="Tipe file yang diizinkan" required description="Pisahkan dengan koma, misalnya application/pdf, image/jpeg."><Input id="document-types" value={documentMimeTypes} onChange={(event) => setDocumentMimeTypes(event.target.value)} placeholder="application/pdf" disabled={saving} /></FormField>
+                <FormField id="document-types" label="Tipe file yang diizinkan" required description="Pilih satu atau beberapa tipe file yang boleh diunggah.">
+                  <DropdownMenu>
+                    <div className="relative">
+                      <DropdownMenuTrigger
+                        id="document-types"
+                        className="flex h-10 w-full items-center justify-between gap-3 rounded-md border border-input bg-background px-3 py-2 text-left text-sm text-foreground shadow-xs transition-[border-color,box-shadow] focus-visible:border-primary/60 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring/25 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={saving}
+                      >
+                        <span className={documentMimeTypes.length ? "truncate" : "truncate text-muted-foreground"}>
+                          {documentFileTypeSummary(documentMimeTypes)}
+                        </span>
+                        <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-full min-w-[var(--radix-dropdown-menu-trigger-width)] p-2">
+                        <div className="space-y-1" aria-label="Pilihan tipe file">
+                          {documentFileTypeOptions.map((option, index) => {
+                            const checked = documentMimeTypes.includes(option.value);
+                            const checkboxId = `document-type-${index}`;
+                            return (
+                              <label key={option.value} htmlFor={checkboxId} className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 text-sm hover:bg-accent">
+                                <Checkbox
+                                  id={checkboxId}
+                                  checked={checked}
+                                  onChange={(event) => toggleDocumentMimeType(option.value, event.target.checked)}
+                                  disabled={saving}
+                                />
+                                <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                                  <span>{option.label}</span>
+                                  <span className="text-xs text-muted-foreground">{option.extension}</span>
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </DropdownMenuContent>
+                    </div>
+                  </DropdownMenu>
+                </FormField>
                 <div className="grid gap-5 sm:grid-cols-2"><FormField id="document-order" label="Urutan" required><Input id="document-order" type="number" min="0" value={documentForm.order} onChange={(event) => setDocumentForm((current) => ({ ...current, order: Number(event.target.value) }))} disabled={saving} /></FormField><FormField id="document-size" label="Ukuran maksimum (byte)" required><Input id="document-size" type="number" min="1" value={documentForm.maxSize} onChange={(event) => setDocumentForm((current) => ({ ...current, maxSize: Number(event.target.value) }))} disabled={saving} /></FormField></div>
                 <label className="flex items-center gap-3 text-sm font-medium" htmlFor="document-required"><Checkbox id="document-required" checked={documentForm.required} onChange={(event) => setDocumentForm((current) => ({ ...current, required: event.target.checked }))} disabled={saving} />Dokumen wajib</label>
                 <DialogFooter><Button type="button" variant="outline" onClick={() => setDocumentDialog(false)} disabled={saving}>Batal</Button><Button type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Button></DialogFooter>
