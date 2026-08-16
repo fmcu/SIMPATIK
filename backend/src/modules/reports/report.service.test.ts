@@ -74,10 +74,9 @@ function repository(overrides: Partial<ReportRepository> = {}): ReportRepository
     },
     addReviewComment: async () => report("SUBMITTED"),
     requestRevision: async () => report("REVISION_REQUIRED"),
-     markReviewed: async () => report("REVIEWED"),
-     approve: async () => report("APPROVED"),
-     ...overrides,
-
+    markReviewed: async () => report("REVIEWED"),
+    approve: async () => report("APPROVED"),
+    ...overrides,
   };
 }
 
@@ -369,17 +368,36 @@ test("report rejects all workflow mutations after approval", async () => {
     { validate: async () => [] },
   );
 
-  await assert.rejects(() => service.update("report-1", {
-    version: 1,
-    items: [{ indicatorId: "indicator-1", value: "10" }],
-    uptScopeId: "upt-a",
-    actorId: "user-1",
-  }), (error: unknown) => error instanceof AppError && error.code === "REPORT_LOCKED");
-  await assert.rejects(() => service.submit("report-1", "upt-a", "coordinator-1"), (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS");
-  await assert.rejects(() => service.addReviewComment("report-1", "kanwil-1", "Catatan"), (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS");
-  await assert.rejects(() => service.requestRevision("report-1", "kanwil-1", "Catatan"), (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS");
-  await assert.rejects(() => service.markReviewed("report-1", "kanwil-1"), (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS");
-  await assert.rejects(() => service.approve("report-1", "owner-1"), (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS");
+  await assert.rejects(
+    () =>
+      service.update("report-1", {
+        version: 1,
+        items: [{ indicatorId: "indicator-1", value: "10" }],
+        uptScopeId: "upt-a",
+        actorId: "user-1",
+      }),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_LOCKED",
+  );
+  await assert.rejects(
+    () => service.submit("report-1", "upt-a", "coordinator-1"),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
+  );
+  await assert.rejects(
+    () => service.addReviewComment("report-1", "kanwil-1", "Catatan"),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
+  );
+  await assert.rejects(
+    () => service.requestRevision("report-1", "kanwil-1", "Catatan"),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
+  );
+  await assert.rejects(
+    () => service.markReviewed("report-1", "kanwil-1"),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
+  );
+  await assert.rejects(
+    () => service.approve("report-1", "owner-1"),
+    (error: unknown) => error instanceof AppError && error.code === "REPORT_INVALID_STATUS",
+  );
 });
 
 test("report rejects updates after submission", async () => {

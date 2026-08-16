@@ -1,8 +1,17 @@
-import { rm } from "node:fs/promises";
+import { createWriteStream } from "node:fs";
+import { mkdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Request } from "express";
 import formidable, { type File } from "formidable";
 
 import { AppError } from "../../middleware/error.js";
+
+export const UPLOAD_DIRECTORY = join(tmpdir(), "simpatik-private-uploads");
+
+async function ensureUploadDirectory(): Promise<void> {
+  await mkdir(UPLOAD_DIRECTORY, { recursive: true, mode: 0o700 });
+}
 
 export type ParsedAttachmentUpload = {
   reportItemId?: string;
@@ -32,18 +41,32 @@ function singleFile(value: File[] | undefined): File {
   return file;
 }
 
+async function cleanupFiles(files: readonly File[]): Promise<void> {
+  await Promise.allSettled(files.map((file) => rm(file.filepath, { force: true })));
+}
+
 export async function parseAttachmentUpload(
   request: Request,
   maxUploadSize: number,
 ): Promise<ParsedAttachmentUpload> {
   if (!request.is("multipart/form-data")) {
-    throw new AppError(400, "ATTACHMENT_INVALID", "Request unggahan harus menggunakan multipart/form-data.", [
-      { field: "file", message: "File belum dikirim." },
-    ]);
+    throw new AppError(
+      400,
+      "ATTACHMENT_INVALID",
+      "Request unggahan harus menggunakan multipart/form-data.",
+      [{ field: "file", message: "File belum dikirim." }],
+    );
   }
+
+  await ensureUploadDirectory();
 
   const form = formidable({
     allowEmptyFiles: false,
+    uploadDir: UPLOAD_DIRECTORY,
+    fileWriteStreamHandler: (file) => {
+      const filepath = (file as { filepath: string } | undefined)?.filepath;
+      return createWriteStream(filepath!, { flags: "wx", mode: 0o600 });
+    },
     maxFiles: 1,
     maxFileSize: maxUploadSize,
     maxTotalFileSize: maxUploadSize,
@@ -63,12 +86,10 @@ export async function parseAttachmentUpload(
       ...(reportItemId === undefined ? {} : { reportItemId }),
       ...(requirementId === undefined ? {} : { requirementId }),
       file,
-      cleanup: async () => {
-        await Promise.all(files.map((item) => rm(item.filepath, { force: true })));
-      },
+      cleanup: () => cleanupFiles(files),
     };
   } catch (error) {
-    await Promise.all(files.map((file) => rm(file.filepath, { force: true })));
+    await cleanupFiles(files);
     if (error instanceof AppError) throw error;
     const message = error instanceof Error ? error.message : "";
     if (message.includes("maxFileSize") || message.includes("maxTotalFileSize")) {

@@ -120,7 +120,9 @@ export default function ReportReviewPage() {
           role="alert"
         >
           <h1 className="text-xl font-bold text-destructive">Akses ditolak</h1>
-          <p className="mt-2 text-sm text-destructive">Anda tidak memiliki izin melihat antrean reviu.</p>
+          <p className="mt-2 text-sm text-destructive">
+            Anda tidak memiliki izin melihat antrean reviu.
+          </p>
         </section>
       ) : (
         <div className="space-y-8">

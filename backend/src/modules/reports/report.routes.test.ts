@@ -8,6 +8,7 @@ import type { Role } from "@simpatik/contracts";
 import type { AuthRequest } from "../../middleware/auth.types.js";
 import type { AuthSession } from "../auth/auth.js";
 import { errorHandler } from "../../middleware/error-handler.js";
+import type { PrivateStorageAdapter } from "../../services/private-storage.service.js";
 import type { ReportControllerHandlers } from "./report.routes.js";
 import { createReportRouter } from "./report.routes.js";
 
@@ -27,6 +28,14 @@ function session(role: Role, uptId: string | null = null) {
     next();
   };
 }
+
+const storage: PrivateStorageAdapter = {
+  async write(): Promise<void> {},
+  async read(): Promise<never> {
+    throw new Error("not used");
+  },
+  async delete(): Promise<void> {},
+};
 
 function controller(): ReportControllerHandlers {
   return {
@@ -71,7 +80,7 @@ function app(role: Role, uptId: string | null = null) {
   instance.use(express.json());
   instance.use(
     "/api/reports",
-    createReportRouter({ controller: controller(), requireSession: session(role, uptId) }),
+    createReportRouter({ controller: controller(), requireSession: session(role, uptId), storage }),
   );
   instance.use(errorHandler);
   return instance;
@@ -105,12 +114,12 @@ test("report routes allow only Koordinator UPT to submit", async () => {
 });
 
 test("report routes allow only Petugas Kanwil to review", async () => {
-  const kanwil = await request(app("PETUGAS_KANWIL")).post(
-    "/api/reports/report-1/request-revision",
-  ).send({ message: "Lengkapi narasi." });
-  const coordinator = await request(app("KOORDINATOR_UPT", "upt-a")).post(
-    "/api/reports/report-1/request-revision",
-  ).send({ message: "Lengkapi narasi." });
+  const kanwil = await request(app("PETUGAS_KANWIL"))
+    .post("/api/reports/report-1/request-revision")
+    .send({ message: "Lengkapi narasi." });
+  const coordinator = await request(app("KOORDINATOR_UPT", "upt-a"))
+    .post("/api/reports/report-1/request-revision")
+    .send({ message: "Lengkapi narasi." });
   const petugas = await request(app("PETUGAS_UPT", "upt-a")).post(
     "/api/reports/report-1/mark-reviewed",
   );
@@ -135,7 +144,9 @@ test("report routes allow only Product Owner to approve", async () => {
 });
 
 test("report routes require a message for comments and revisions", async () => {
-  const comment = await request(app("PETUGAS_KANWIL")).post("/api/reports/report-1/comments").send({});
+  const comment = await request(app("PETUGAS_KANWIL"))
+    .post("/api/reports/report-1/comments")
+    .send({});
   const revision = await request(app("PETUGAS_KANWIL"))
     .post("/api/reports/report-1/request-revision")
     .send({ message: "   " });
@@ -180,6 +191,7 @@ test("report routes pass the UPT session scope to detail and draft update handle
     createReportRouter({
       controller: scopedController,
       requireSession: session("PETUGAS_UPT", "upt-a"),
+      storage,
     }),
   );
   instance.use(errorHandler);

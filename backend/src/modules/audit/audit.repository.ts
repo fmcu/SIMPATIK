@@ -53,7 +53,13 @@ export function createAuditLogReader(database: AuditLogDatabase): AuditLogReader
         actor: { select: { id: true, name: true, email: true } },
       } as const;
       const [items, total] = await Promise.all([
-        database.auditLog.findMany({ where, skip, take, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select }),
+        database.auditLog.findMany({
+          where,
+          skip,
+          take,
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          select,
+        }),
         database.auditLog.count({ where }),
       ]);
       return { items: items as AuditLogEntry[], total };

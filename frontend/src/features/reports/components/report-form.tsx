@@ -87,7 +87,7 @@ export function ReportForm({ report, onSaved }: ReportFormProps) {
   const visibleRequirements = requirements.filter(
     (requirement) => requirement.required && requirement.approvalStatus === "APPROVED",
   );
-  const allFieldErrors = fieldErrors.length ? fieldErrors : error?.fields ?? [];
+  const allFieldErrors = fieldErrors.length ? fieldErrors : (error?.fields ?? []);
 
   function fieldError(field: string): string | undefined {
     return allFieldErrors.find((item) => item.field === field)?.message;
@@ -212,18 +212,30 @@ export function ReportForm({ report, onSaved }: ReportFormProps) {
         <StatusBadge status={report.status} />
       </section>
       {allFieldErrors.length ? (
-        <section className="rounded-xl border border-destructive/40 bg-destructive/10 p-4" aria-labelledby="error-summary-title" role="alert">
-          <h2 id="error-summary-title" className="font-semibold text-destructive">Laporan belum lengkap</h2>
+        <section
+          className="rounded-xl border border-destructive/40 bg-destructive/10 p-4"
+          aria-labelledby="error-summary-title"
+          role="alert"
+        >
+          <h2 id="error-summary-title" className="font-semibold text-destructive">
+            Laporan belum lengkap
+          </h2>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-destructive">
             {allFieldErrors.map((item) => {
               const id = inputIdForField(report, item.field);
               return (
                 <li key={`${item.field}-${item.message}`}>
                   {id ? (
-                    <a href={`#${id}`} className="underline" onClick={() => document.getElementById(id)?.focus()}>
+                    <a
+                      href={`#${id}`}
+                      className="underline"
+                      onClick={() => document.getElementById(id)?.focus()}
+                    >
                       {item.message}
                     </a>
-                  ) : item.message}
+                  ) : (
+                    item.message
+                  )}
                 </li>
               );
             })}
@@ -301,7 +313,9 @@ export function ReportForm({ report, onSaved }: ReportFormProps) {
       <section className="space-y-5 rounded-xl border bg-card p-5">
         <div>
           <h2 className="text-lg font-semibold">Dokumen wajib</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Unggah bukti untuk setiap dokumen wajib periode ini.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Unggah bukti untuk setiap dokumen wajib periode ini.
+          </p>
         </div>
         {requirementsError ? <p className="text-sm text-destructive">{requirementsError}</p> : null}
         {visibleRequirements.length ? (
@@ -335,7 +349,9 @@ export function ReportForm({ report, onSaved }: ReportFormProps) {
             })}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Tidak ada dokumen wajib untuk periode ini.</p>
+          <p className="text-sm text-muted-foreground">
+            Tidak ada dokumen wajib untuk periode ini.
+          </p>
         )}
       </section>
       <section className="rounded-xl border bg-card p-5">
@@ -345,7 +361,9 @@ export function ReportForm({ report, onSaved }: ReportFormProps) {
           multiple
           maxSizeBytes={10 * 1024 * 1024}
           disabled={saving || checking}
-          uploadedFiles={(report.attachments ?? []).filter((attachment) => attachment.requirementId === null).map(attachmentFile)}
+          uploadedFiles={(report.attachments ?? [])
+            .filter((attachment) => attachment.requirementId === null)
+            .map(attachmentFile)}
           label="Dokumen pendukung tambahan"
           description="PDF, DOCX, XLSX, PNG, atau JPG. Maksimal 10 MB per file."
           onUpload={(file, onProgress) => uploadAttachment(undefined, file, onProgress)}
@@ -355,7 +373,12 @@ export function ReportForm({ report, onSaved }: ReportFormProps) {
         />
       </section>
       <div className="sticky bottom-4 flex flex-wrap justify-end gap-3 rounded-xl border bg-background/95 p-3 backdrop-blur">
-        <Button type="button" variant="outline" disabled={saving || checking || !items.length} onClick={() => void checkCompleteness()}>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={saving || checking || !items.length}
+          onClick={() => void checkCompleteness()}
+        >
           {checking ? "Memeriksa..." : "Periksa kelengkapan"}
         </Button>
         <Button type="submit" disabled={saving || checking || !items.length}>

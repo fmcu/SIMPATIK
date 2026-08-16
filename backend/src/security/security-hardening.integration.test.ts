@@ -15,10 +15,20 @@ const database = {
   },
 };
 
+const testStorage = {
+  async write(): Promise<void> {},
+  async read(): Promise<never> {
+    throw new Error("not used");
+  },
+  async delete(): Promise<void> {},
+  async check(): Promise<void> {},
+  close(): void {},
+};
+
 test("security headers and CORS allowlist are applied", async () => {
-  const app = createApp(database);
-  const allowed = await request(app).get("/health/live").set("Origin", "http://localhost:3000");
-  const denied = await request(app).get("/health/live").set("Origin", "http://untrusted.example");
+  const app = createApp({ database, storage: testStorage });
+  const allowed = await request(app).get("/api/auth/ok").set("Origin", "http://localhost:3000");
+  const denied = await request(app).get("/api/auth/ok").set("Origin", "http://untrusted.example");
 
   assert.equal(allowed.status, 200);
   assert.equal(allowed.headers["access-control-allow-origin"], "http://localhost:3000");
@@ -32,7 +42,7 @@ test("security headers and CORS allowlist are applied", async () => {
 });
 
 test("request size limit returns a sanitized 413 response", async () => {
-  const app = createApp(database);
+  const app = createApp({ database, storage: testStorage });
   const response = await request(app)
     .post("/api/unknown")
     .set("Content-Type", "application/json")
@@ -45,7 +55,7 @@ test("request size limit returns a sanitized 413 response", async () => {
 });
 
 test("malformed JSON returns a sanitized validation error", async () => {
-  const app = createApp(database);
+  const app = createApp({ database, storage: testStorage });
   const response = await request(app)
     .post("/api/unknown")
     .set("Content-Type", "application/json")

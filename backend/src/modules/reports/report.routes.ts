@@ -19,6 +19,7 @@ import {
   reviewCommentSchema,
 } from "./report.schema.js";
 import { ReportService } from "./report.service.js";
+import type { PrivateStorageAdapter } from "../../services/private-storage.service.js";
 
 const reportReaders = roles.reportReaders;
 
@@ -26,9 +27,9 @@ export type ReportControllerHandlers = Pick<
   ReportController,
   | "list"
   | "create"
-   | "detail"
-   | "history"
-   | "submit"
+  | "detail"
+  | "history"
+  | "submit"
   | "update"
   | "validateCompleteness"
   | "addReviewComment"
@@ -40,6 +41,7 @@ export type ReportControllerHandlers = Pick<
 type ReportRouterDependencies = {
   controller?: ReportControllerHandlers;
   requireSession?: RequestHandler;
+  storage?: PrivateStorageAdapter;
 };
 
 export function createReportRouter(dependencies: ReportRouterDependencies = {}): Router {
@@ -97,7 +99,13 @@ export function createReportRouter(dependencies: ReportRouterDependencies = {}):
     validate(reportIdParamsSchema, "params"),
     asyncHandler(controller.validateCompleteness),
   );
-  router.use("/:id/attachments", createReportAttachmentRouter());
+  router.use(
+    "/:id/attachments",
+    createReportAttachmentRouter({
+      ...(dependencies.storage ? { storage: dependencies.storage } : {}),
+      ...(dependencies.requireSession ? { requireSession: dependencies.requireSession } : {}),
+    }),
+  );
   router.post(
     "/:id/submit",
     session,

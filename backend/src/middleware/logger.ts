@@ -1,6 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 
-function writeLog(level: "info" | "error", message: string, fields: Record<string, unknown>): void {
+function writeLog(
+  level: "info" | "warn" | "error",
+  message: string,
+  fields: Record<string, unknown>,
+): void {
   const entry = {
     timestamp: new Date().toISOString(),
     level,
@@ -11,6 +15,8 @@ function writeLog(level: "info" | "error", message: string, fields: Record<strin
   const output = JSON.stringify(entry);
   if (level === "error") {
     console.error(output);
+  } else if (level === "warn") {
+    console.warn(output);
   } else {
     console.log(output);
   }

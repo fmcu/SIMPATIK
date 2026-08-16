@@ -50,12 +50,30 @@ test("report document validation returns requirements without matching attachmen
 
 test("document creation rejects an indicator from another period", async () => {
   const service = new DocumentService(
-    repository({ indicator: async () => ({ id: "indicator-1", period: { id: "other-period", status: "DRAFT" } }) }),
+    repository({
+      indicator: async () => ({
+        id: "indicator-1",
+        period: { id: "other-period", status: "DRAFT" },
+      }),
+    }),
     audit,
   );
 
   await assert.rejects(
-    () => service.create({ indicatorId: "indicator-1", code: "DOC-1", name: "Dokumen", required: true, allowedMimeTypes: ["application/pdf"], maxSize: 1000, order: 1 }, "admin", "period-1"),
+    () =>
+      service.create(
+        {
+          indicatorId: "indicator-1",
+          code: "DOC-1",
+          name: "Dokumen",
+          required: true,
+          allowedMimeTypes: ["application/pdf"],
+          maxSize: 1000,
+          order: 1,
+        },
+        "admin",
+        "period-1",
+      ),
     (error: unknown) => error instanceof AppError && error.code === "VALIDATION_ERROR",
   );
 });

@@ -17,7 +17,12 @@ export default function SettingsPage() {
       ) : panel === "health" ? (
         <HealthPanel />
       ) : (
-        <section className="rounded-xl border bg-card p-8 text-center"><h1 className="text-xl font-bold">Akses ditolak</h1><p className="mt-2 text-sm text-muted-foreground">Pengaturan hanya tersedia untuk Admin SIMPATIK dan System Administrator.</p></section>
+        <section className="rounded-xl border bg-card p-8 text-center">
+          <h1 className="text-xl font-bold">Akses ditolak</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Pengaturan hanya tersedia untuk Admin SIMPATIK dan System Administrator.
+          </p>
+        </section>
       )}
     </AppShell>
   );

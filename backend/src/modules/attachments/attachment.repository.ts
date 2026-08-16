@@ -39,21 +39,42 @@ type Requirement = {
   indicator: { periodId: string } | null;
 };
 
+export type AttachmentDeleteResult =
+  { status: "DELETED"; cleanupTaskId: string } | { status: "NOT_DELETED" };
+
+export type UploadCleanupTask = {
+  id: string;
+  storageKey: string;
+};
+
+export type UploadCleanupResolution =
+  | { status: "CLEANUP_REQUIRED"; attempts: number; leaseUntil: Date }
+  | { status: "METADATA_COMMITTED" }
+  | { status: "DEFERRED" };
+
 export interface AttachmentRepository {
   findReportForUpload(id: string, uptScopeId: string): Promise<UploadReport | null>;
   findRequirement(id: string): Promise<Requirement | null>;
+  enqueueUploadCleanup(storageKey: string, nextAttemptAt: Date): Promise<UploadCleanupTask>;
   create(data: {
     reportId: string;
     reportItemId?: string;
     requirementId?: string;
     storageKey: string;
+    cleanupTaskId: string;
     originalName: string;
     mimeType: string;
     size: number;
     uploadedById: string;
   }): Promise<AttachmentRecord>;
+  resolveUploadCleanup(task: UploadCleanupTask, leaseUntil: Date): Promise<UploadCleanupResolution>;
+  completeUploadCleanup(
+    task: UploadCleanupTask,
+    claimedAttempts: number,
+    leaseUntil: Date,
+  ): Promise<boolean>;
   findById(id: string, uptScopeId?: string): Promise<PrivateAttachmentRecord | null>;
-  delete(id: string, reportId: string, actorId: string): Promise<boolean>;
+  delete(id: string, reportId: string, actorId: string): Promise<AttachmentDeleteResult>;
 }
 
 export function createAttachmentRepository(database: PrismaClient): AttachmentRepository {
@@ -80,8 +101,25 @@ export function createAttachmentRepository(database: PrismaClient): AttachmentRe
           indicator: { select: { periodId: true } },
         },
       }),
+    enqueueUploadCleanup: (storageKey, nextAttemptAt) =>
+      database.storageDeletionTask.create({
+        data: { storageKey, nextAttemptAt, repeatUntilCancelled: true },
+        select: { id: true, storageKey: true },
+      }),
     create: (data) =>
       database.$transaction(async (transaction) => {
+        const cancelledCleanup = await transaction.storageDeletionTask.deleteMany({
+          where: {
+            id: data.cleanupTaskId,
+            storageKey: data.storageKey,
+            attempts: 0,
+            repeatUntilCancelled: true,
+          },
+        });
+        if (cancelledCleanup.count !== 1) {
+          throw new Error("Upload cleanup task was already claimed.");
+        }
+
         const attachment = await transaction.attachment.create({
           data: {
             reportId: data.reportId,
@@ -112,6 +150,41 @@ export function createAttachmentRepository(database: PrismaClient): AttachmentRe
         });
         return attachment;
       }),
+    resolveUploadCleanup: (task, leaseUntil) =>
+      database.$transaction(async (transaction) => {
+        const claimed = await transaction.storageDeletionTask.updateMany({
+          where: {
+            id: task.id,
+            storageKey: task.storageKey,
+            attempts: 0,
+            repeatUntilCancelled: true,
+          },
+          data: { attempts: { increment: 1 }, nextAttemptAt: leaseUntil },
+        });
+        if (claimed.count === 1) {
+          return { status: "CLEANUP_REQUIRED", attempts: 1, leaseUntil } as const;
+        }
+
+        const attachment = await transaction.attachment.findUnique({
+          where: { storageKey: task.storageKey },
+          select: { id: true },
+        });
+        return attachment
+          ? ({ status: "METADATA_COMMITTED" } as const)
+          : ({ status: "DEFERRED" } as const);
+      }),
+    completeUploadCleanup: async (task, claimedAttempts, leaseUntil) => {
+      const completed = await database.storageDeletionTask.deleteMany({
+        where: {
+          id: task.id,
+          storageKey: task.storageKey,
+          attempts: claimedAttempts,
+          nextAttemptAt: leaseUntil,
+          repeatUntilCancelled: true,
+        },
+      });
+      return completed.count === 1;
+    },
     findById: (id, uptScopeId) =>
       database.attachment.findFirst({
         where: { id, ...(uptScopeId ? { report: { uptId: uptScopeId } } : {}) },
@@ -119,20 +192,31 @@ export function createAttachmentRepository(database: PrismaClient): AttachmentRe
       }),
     delete: (id, reportId, actorId) =>
       database.$transaction(async (transaction) => {
+        const attachment = await transaction.attachment.findFirst({
+          where: { id, reportId, report: { status: { in: ["DRAFT", "REVISION_REQUIRED"] } } },
+          select: { storageKey: true },
+        });
+        if (!attachment) return { status: "NOT_DELETED" } as const;
+
         const removed = await transaction.attachment.deleteMany({
           where: { id, reportId, report: { status: { in: ["DRAFT", "REVISION_REQUIRED"] } } },
         });
-        if (removed.count !== 1) return false;
+        if (removed.count !== 1) return { status: "NOT_DELETED" } as const;
+
+        const cleanupTask = await transaction.storageDeletionTask.create({
+          data: { storageKey: attachment.storageKey },
+          select: { id: true },
+        });
         await transaction.auditLog.create({
           data: {
             actorId,
             action: "ATTACHMENT_DELETED",
             entityType: "Attachment",
             entityId: id,
-            metadata: { reportId },
+            metadata: { reportId, cleanupTaskId: cleanupTask.id },
           },
         });
-        return true;
+        return { status: "DELETED", cleanupTaskId: cleanupTask.id } as const;
       }),
   };
 }

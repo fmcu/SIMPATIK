@@ -11,14 +11,16 @@ test("audit log reader filters safely and returns newest entries", async () => {
     auditLog: {
       findMany: async (args: Record<string, unknown>) => {
         findManyArgs = args;
-        return [{
-          id: "audit-1",
-          action: "USER_UPDATED",
-          entityType: "User",
-          entityId: "user-1",
-          createdAt,
-          actor: { id: "admin-1", name: "Admin", email: "admin@example.test" },
-        }];
+        return [
+          {
+            id: "audit-1",
+            action: "USER_UPDATED",
+            entityType: "User",
+            entityId: "user-1",
+            createdAt,
+            actor: { id: "admin-1", name: "Admin", email: "admin@example.test" },
+          },
+        ];
       },
       count: async (args: Record<string, unknown>) => {
         countArgs = args;
@@ -60,14 +62,16 @@ test("audit log reader filters safely and returns newest entries", async () => {
   });
   assert.deepEqual(countArgs, { where });
   assert.deepEqual(result, {
-    items: [{
-      id: "audit-1",
-      action: "USER_UPDATED",
-      entityType: "User",
-      entityId: "user-1",
-      createdAt,
-      actor: { id: "admin-1", name: "Admin", email: "admin@example.test" },
-    }],
+    items: [
+      {
+        id: "audit-1",
+        action: "USER_UPDATED",
+        entityType: "User",
+        entityId: "user-1",
+        createdAt,
+        actor: { id: "admin-1", name: "Admin", email: "admin@example.test" },
+      },
+    ],
     total: 1,
   });
 });

@@ -39,10 +39,9 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   const [denied, setDenied] = useState(false);
   const [downloading, setDownloading] = useState<string | null>(null);
   const [reviewNote, setReviewNote] = useState("");
-   const [reviewError, setReviewError] = useState<string | null>(null);
-   const [reviewing, setReviewing] = useState<"comment" | "revision" | "reviewed" | null>(null);
-   const [approving, setApproving] = useState(false);
-
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<"comment" | "revision" | "reviewed" | null>(null);
+  const [approving, setApproving] = useState(false);
 
   useEffect(() => {
     void params.then(({ id }) => setReportId(id));
@@ -96,7 +95,8 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
     setReviewError(null);
     try {
       if (action === "comment") await apiClient.reports.addReviewComment(report.id, { message });
-      else if (action === "revision") await apiClient.reports.requestRevision(report.id, { message });
+      else if (action === "revision")
+        await apiClient.reports.requestRevision(report.id, { message });
       else await apiClient.reports.markReviewed(report.id);
       setReviewNote("");
       await load();
@@ -150,34 +150,34 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                   <ArrowLeft />
                   Kembali
                 </Link>
-                 {canEdit ? (
-                   <Link
-                     href={`/reports/${report.id}/edit`}
-                     className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                   >
-                     <Pencil />
-                     Ubah draf
-                   </Link>
-                 ) : null}
-                 {canApprove ? (
-                   <ConfirmDialog
-                     trigger={
-                       <Button type="button">
-                         <CheckCircle2 />
-                         Setujui laporan
-                       </Button>
-                     }
+                {canEdit ? (
+                  <Link
+                    href={`/reports/${report.id}/edit`}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    <Pencil />
+                    Ubah draf
+                  </Link>
+                ) : null}
+                {canApprove ? (
+                  <ConfirmDialog
+                    trigger={
+                      <Button type="button">
+                        <CheckCircle2 />
+                        Setujui laporan
+                      </Button>
+                    }
 
-                     title="Setujui laporan?"
-                     description="Laporan akan menjadi data resmi dan tidak dapat diedit, dihapus, dikembalikan, atau diubah statusnya melalui alur biasa."
-                     confirmLabel="Ya, setujui laporan"
-                     loading={approving}
-                     onConfirm={approveReport}
-                   />
-                 ) : null}
-               </>
-             }
-           />
+                    title="Setujui laporan?"
+                    description="Laporan akan menjadi data resmi dan tidak dapat diedit, dihapus, dikembalikan, atau diubah statusnya melalui alur biasa."
+                    confirmLabel="Ya, setujui laporan"
+                    loading={approving}
+                    onConfirm={approveReport}
+                  />
+                ) : null}
+              </>
+            }
+          />
 
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-xl border bg-card p-5">
@@ -202,19 +202,18 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
               <p className="text-sm text-muted-foreground">
                 Diajukan: {dateTimeLabel(report.submittedAt)}
               </p>
-               {report.reviewedAt ? (
-                 <p className="text-sm text-muted-foreground">
-                   Direviu: {dateTimeLabel(report.reviewedAt)}
-                   {report.reviewedBy ? ` oleh ${report.reviewedBy.name}` : ""}
-                 </p>
-               ) : null}
-               {report.approvedAt ? (
-                 <p className="text-sm text-muted-foreground">
-                   Disetujui: {dateTimeLabel(report.approvedAt)}
-                   {report.approvedBy ? ` oleh ${report.approvedBy.name}` : ""}
-                 </p>
-               ) : null}
-
+              {report.reviewedAt ? (
+                <p className="text-sm text-muted-foreground">
+                  Direviu: {dateTimeLabel(report.reviewedAt)}
+                  {report.reviewedBy ? ` oleh ${report.reviewedBy.name}` : ""}
+                </p>
+              ) : null}
+              {report.approvedAt ? (
+                <p className="text-sm text-muted-foreground">
+                  Disetujui: {dateTimeLabel(report.approvedAt)}
+                  {report.approvedBy ? ` oleh ${report.approvedBy.name}` : ""}
+                </p>
+              ) : null}
             </div>
           </section>
           {canReview ? (
@@ -233,7 +232,10 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 </p>
               </div>
               {reviewError ? (
-                <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+                <p
+                  className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                  role="alert"
+                >
                   {reviewError}
                 </p>
               ) : null}
@@ -314,25 +316,28 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
               {report.attachments?.length ? (
                 <ul className="mt-4 space-y-3">
                   {report.attachments.map((attachment) => (
-                      <li key={attachment.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{attachment.originalName}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {attachment.mimeType} · {attachment.size.toLocaleString("id-ID")} byte ·{" "}
-                            {dateTimeLabel(attachment.createdAt)}
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={downloading === attachment.id}
-                          onClick={() => void downloadAttachment(attachment)}
-                        >
-                          <Download />
-                          {downloading === attachment.id ? "Mengunduh..." : "Unduh"}
-                        </Button>
-                      </li>
+                    <li
+                      key={attachment.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{attachment.originalName}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {attachment.mimeType} · {attachment.size.toLocaleString("id-ID")} byte ·{" "}
+                          {dateTimeLabel(attachment.createdAt)}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={downloading === attachment.id}
+                        onClick={() => void downloadAttachment(attachment)}
+                      >
+                        <Download />
+                        {downloading === attachment.id ? "Mengunduh..." : "Unduh"}
+                      </Button>
+                    </li>
                   ))}
                 </ul>
               ) : (
@@ -357,14 +362,13 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
               )}
             </div>
           </section>
-           <section className="rounded-xl border bg-card p-6">
-             <h2 className="text-lg font-semibold">Histori status</h2>
-             <ReportHistoryTimeline histories={report.histories ?? []} />
-             <p className="mt-5 text-sm text-muted-foreground">
-               Periode: {report.period.name} · Tenggat {dateLabel(report.period.dueDate)}
-             </p>
-           </section>
-
+          <section className="rounded-xl border bg-card p-6">
+            <h2 className="text-lg font-semibold">Histori status</h2>
+            <ReportHistoryTimeline histories={report.histories ?? []} />
+            <p className="mt-5 text-sm text-muted-foreground">
+              Periode: {report.period.name} · Tenggat {dateLabel(report.period.dueDate)}
+            </p>
+          </section>
         </div>
       )}
     </AppShell>

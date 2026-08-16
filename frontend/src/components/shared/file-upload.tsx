@@ -194,8 +194,14 @@ export function FileUpload({
                   </Button>
                 </div>
                 {uploading ? (
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" aria-label={`Progress ${file.name}`}>
-                    <div className="h-full bg-primary transition-all" style={{ width: `${progress[key] ?? 0}%` }} />
+                  <div
+                    className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
+                    aria-label={`Progress ${file.name}`}
+                  >
+                    <div
+                      className="h-full bg-primary transition-all"
+                      style={{ width: `${progress[key] ?? 0}%` }}
+                    />
                   </div>
                 ) : null}
               </li>
@@ -206,7 +212,10 @@ export function FileUpload({
       {uploadedFiles.length ? (
         <ul className="space-y-2" aria-label="Daftar lampiran">
           {uploadedFiles.map((file) => (
-            <li key={file.id} className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2 text-sm">
+            <li
+              key={file.id}
+              className="flex items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2 text-sm"
+            >
               <div className="min-w-0">
                 <p className="truncate font-medium">{file.originalName}</p>
                 <p className="text-xs text-muted-foreground">
@@ -235,7 +244,11 @@ export function FileUpload({
                     disabled={disabled || deleting === file.id}
                     onClick={() => void removeUploadedFile(file)}
                   >
-                    {deleting === file.id ? <LoaderCircle className="animate-spin" /> : <Trash2 className="size-4" />}
+                    {deleting === file.id ? (
+                      <LoaderCircle className="animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
                   </Button>
                 ) : null}
               </div>

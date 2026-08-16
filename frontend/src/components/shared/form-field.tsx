@@ -14,15 +14,31 @@ export interface FormFieldProps {
   className?: string;
 }
 
-export function FormField({ id, label, children, description, error, required = false, disabled = false, className }: FormFieldProps) {
+export function FormField({
+  id,
+  label,
+  children,
+  description,
+  error,
+  required = false,
+  disabled = false,
+  className,
+}: FormFieldProps) {
   return (
     <FormItem className={cn(disabled && "opacity-60", className)}>
       <FormLabel htmlFor={id}>
-        {label}{required ? <span className="ml-1 text-destructive" aria-hidden="true">*</span> : null}
+        {label}
+        {required ? (
+          <span className="ml-1 text-destructive" aria-hidden="true">
+            *
+          </span>
+        ) : null}
         {required ? <span className="sr-only"> wajib diisi</span> : null}
       </FormLabel>
       {children}
-      {description && !error ? <FormDescription id={`${id}-description`}>{description}</FormDescription> : null}
+      {description && !error ? (
+        <FormDescription id={`${id}-description`}>{description}</FormDescription>
+      ) : null}
       {error ? <FormMessage id={`${id}-error`}>{error}</FormMessage> : null}
     </FormItem>
   );

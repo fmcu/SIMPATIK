@@ -30,10 +30,10 @@ export function createUptRouter(): Router {
         search?: string;
         active?: boolean;
       };
-       const result = await service.list({
-         ...query,
-         uptScopeId: (request as AuthRequest).uptScopeId,
-       });
+      const result = await service.list({
+        ...query,
+        uptScopeId: (request as AuthRequest).uptScopeId,
+      });
       sendData(response, result.items, paginationMeta(query.page, query.pageSize, result.total));
     }),
   );

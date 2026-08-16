@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  apiErrorCodeSchema,
   failure,
   paginationSchema,
   reportStatusSchema,
@@ -25,6 +26,14 @@ test("API helpers preserve response envelope", () => {
   assert.deepEqual(failure("NOT_FOUND", "Tidak ditemukan."), {
     error: { code: "NOT_FOUND", message: "Tidak ditemukan.", fields: [] },
   });
+});
+
+test("API error codes include unavailable storage", () => {
+  assert.equal(apiErrorCodeSchema.parse("STORAGE_UNAVAILABLE"), "STORAGE_UNAVAILABLE");
+});
+
+test("API error codes include dependency timeout", () => {
+  assert.equal(apiErrorCodeSchema.parse("DEPENDENCY_TIMEOUT"), "DEPENDENCY_TIMEOUT");
 });
 
 test("pagination schema rejects unsafe page sizes", () => {

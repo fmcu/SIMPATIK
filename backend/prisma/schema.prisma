@@ -259,6 +259,18 @@ model Attachment {
   @@index([requirementId])
 }
 
+model StorageDeletionTask {
+  id                   String   @id @default(cuid())
+  storageKey           String   @unique
+  attempts             Int      @default(0)
+  nextAttemptAt        DateTime @default(now())
+  repeatUntilCancelled Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([nextAttemptAt, createdAt])
+}
+
 model ReviewComment {
   id          String   @id @default(cuid())
   reportId    String

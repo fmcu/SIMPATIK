@@ -2,14 +2,22 @@ import { basename, extname } from "node:path";
 import { open, readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { AppError } from "../../middleware/error.js";
-import type { PrivateStorageAdapter } from "../../services/private-storage.service.js";
+import {
+  StorageObjectNotFoundError,
+  StorageUnavailableError,
+  type PrivateStorageAdapter,
+} from "../../services/private-storage.service.js";
+import { writeLog } from "../../middleware/logger.js";
 import type {
   AttachmentRepository,
   AttachmentRecord,
   PrivateAttachmentRecord,
+  UploadCleanupTask,
 } from "./attachment.repository.js";
 
 const editableStatuses = new Set(["DRAFT", "REVISION_REQUIRED"]);
+const UPLOAD_CLEANUP_DELAY_MS = 60 * 60 * 1_000;
+const UPLOAD_CLEANUP_LEASE_MS = 5 * 60 * 1_000;
 
 const allowedFileTypes = {
   "application/pdf": { extensions: [".pdf"], signature: Buffer.from("%PDF-") },
@@ -74,7 +82,10 @@ async function hasExpectedSignature(filepath: string, signature: Buffer): Promis
 async function isOfficeDocument(filepath: string): Promise<boolean> {
   const contents = await readFile(filepath);
   const content = contents.toString("latin1");
-  return content.includes("[Content_Types].xml") && (content.includes("word/") || content.includes("xl/"));
+  return (
+    content.includes("[Content_Types].xml") &&
+    (content.includes("word/") || content.includes("xl/"))
+  );
 }
 
 function validateOptionalId(value: string | undefined, field: string): void {
@@ -86,12 +97,40 @@ function validateOptionalId(value: string | undefined, field: string): void {
   }
 }
 
+function storageUnavailable(message: string): AppError {
+  return new AppError(503, "STORAGE_UNAVAILABLE", message);
+}
+
+function logCleanupFailure(operation: string, error: unknown, cleanupTaskId?: string): void {
+  writeLog("error", "attachment_storage_cleanup_failed", {
+    operation,
+    errorName: error instanceof Error ? error.name : "UnknownError",
+    ...(cleanupTaskId === undefined ? {} : { cleanupTaskId }),
+  });
+}
+
 export class AttachmentService {
   constructor(
     private readonly repository: AttachmentRepository,
     private readonly storage: PrivateStorageAdapter,
     private readonly maxUploadSize: number,
   ) {}
+
+  private async cleanFailedUpload(task: UploadCleanupTask, writeCompleted: boolean): Promise<void> {
+    const leaseUntil = new Date(Date.now() + UPLOAD_CLEANUP_LEASE_MS);
+    const resolution = await this.repository.resolveUploadCleanup(task, leaseUntil);
+    if (resolution.status !== "CLEANUP_REQUIRED") return;
+
+    await this.storage.delete(task.storageKey);
+    if (!writeCompleted) return;
+
+    const completed = await this.repository.completeUploadCleanup(
+      task,
+      resolution.attempts,
+      resolution.leaseUntil,
+    );
+    if (!completed) throw new Error("Upload cleanup task changed during object deletion.");
+  }
 
   async upload(input: UploadAttachmentInput): Promise<AttachmentRecord> {
     validateOptionalId(input.reportItemId, "reportItemId");
@@ -107,12 +146,9 @@ export class AttachmentService {
       );
     }
     if (input.file.size < 1 || input.file.size > this.maxUploadSize) {
-      throw new AppError(
-        400,
-        "ATTACHMENT_TOO_LARGE",
-        "Ukuran file melebihi batas unggahan.",
-        [{ field: "file", message: "Ukuran file tidak valid." }],
-      );
+      throw new AppError(400, "ATTACHMENT_TOO_LARGE", "Ukuran file melebihi batas unggahan.", [
+        { field: "file", message: "Ukuran file tidak valid." },
+      ]);
     }
 
     const originalName = sanitizeOriginalName(input.file.originalFilename);
@@ -139,8 +175,10 @@ export class AttachmentService {
       ]);
     }
     if (
-      (input.file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-        input.file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") &&
+      (input.file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        input.file.mimetype ===
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") &&
       !(await isOfficeDocument(input.file.filepath))
     ) {
       throw new AppError(400, "ATTACHMENT_INVALID", "Isi file Office tidak valid.", [
@@ -154,9 +192,12 @@ export class AttachmentService {
       ]);
     }
     if (input.reportItemId && !input.requirementId) {
-      throw new AppError(400, "ATTACHMENT_INVALID", "Item laporan harus memiliki dokumen wajib terkait.", [
-        { field: "requirementId", message: "Pilih dokumen wajib terkait." },
-      ]);
+      throw new AppError(
+        400,
+        "ATTACHMENT_INVALID",
+        "Item laporan harus memiliki dokumen wajib terkait.",
+        [{ field: "requirementId", message: "Pilih dokumen wajib terkait." }],
+      );
     }
 
     const requirement = input.requirementId
@@ -175,9 +216,12 @@ export class AttachmentService {
         ]);
       }
       if (input.file.size > requirement.maxSize) {
-        throw new AppError(400, "ATTACHMENT_TOO_LARGE", "Ukuran file melebihi batas dokumen wajib.", [
-          { field: "file", message: "Ukuran file melebihi batas dokumen wajib." },
-        ]);
+        throw new AppError(
+          400,
+          "ATTACHMENT_TOO_LARGE",
+          "Ukuran file melebihi batas dokumen wajib.",
+          [{ field: "file", message: "Ukuran file melebihi batas dokumen wajib." }],
+        );
       }
       if (!requirement.allowedMimeTypes.includes(input.file.mimetype)) {
         throw new AppError(400, "ATTACHMENT_INVALID", "Tipe file tidak sesuai dokumen wajib.", [
@@ -187,38 +231,65 @@ export class AttachmentService {
       if (requirement.indicatorId) {
         const reportItem = report.items.find((item) => item.id === input.reportItemId);
         if (!reportItem || reportItem.indicatorId !== requirement.indicatorId) {
-          throw new AppError(400, "ATTACHMENT_INVALID", "Dokumen wajib harus dihubungkan ke indikator terkait.", [
-            { field: "reportItemId", message: "Pilih indikator yang sesuai untuk dokumen wajib ini." },
-          ]);
+          throw new AppError(
+            400,
+            "ATTACHMENT_INVALID",
+            "Dokumen wajib harus dihubungkan ke indikator terkait.",
+            [
+              {
+                field: "reportItemId",
+                message: "Pilih indikator yang sesuai untuk dokumen wajib ini.",
+              },
+            ],
+          );
         }
       }
     }
 
     const storageKey = `attachments/${randomUUID()}`;
+    let cleanupTask: UploadCleanupTask;
+    try {
+      cleanupTask = await this.repository.enqueueUploadCleanup(
+        storageKey,
+        new Date(Date.now() + UPLOAD_CLEANUP_DELAY_MS),
+      );
+    } catch {
+      throw new AppError(500, "INTERNAL_ERROR", "Lampiran belum dapat disimpan.");
+    }
+
+    let writeCompleted = false;
     try {
       await this.storage.write(storageKey, input.file.filepath);
-      try {
-        return await this.repository.create({
-          reportId: report.id,
-          ...(input.reportItemId === undefined ? {} : { reportItemId: input.reportItemId }),
-          ...(input.requirementId === undefined ? {} : { requirementId: input.requirementId }),
-          storageKey,
-          originalName,
-          mimeType: input.file.mimetype,
-          size: input.file.size,
-          uploadedById: input.actorId,
-        });
-      } catch (error) {
-        await this.storage.delete(storageKey);
-        throw error;
-      }
+      writeCompleted = true;
+      return await this.repository.create({
+        reportId: report.id,
+        ...(input.reportItemId === undefined ? {} : { reportItemId: input.reportItemId }),
+        ...(input.requirementId === undefined ? {} : { requirementId: input.requirementId }),
+        storageKey,
+        cleanupTaskId: cleanupTask.id,
+        originalName,
+        mimeType: input.file.mimetype,
+        size: input.file.size,
+        uploadedById: input.actorId,
+      });
     } catch (error) {
+      try {
+        await this.cleanFailedUpload(cleanupTask, writeCompleted);
+      } catch (cleanupError) {
+        logCleanupFailure("upload_rollback", cleanupError, cleanupTask.id);
+      }
       if (error instanceof AppError) throw error;
+      if (error instanceof StorageUnavailableError) {
+        throw storageUnavailable("Penyimpanan file privat sementara tidak tersedia.");
+      }
       throw new AppError(500, "INTERNAL_ERROR", "Lampiran belum dapat disimpan.");
     }
   }
 
-  async download(id: string, uptScopeId?: string): Promise<{
+  async download(
+    id: string,
+    uptScopeId?: string,
+  ): Promise<{
     attachment: PrivateAttachmentRecord;
     stream: Awaited<ReturnType<PrivateStorageAdapter["read"]>>;
   }> {
@@ -226,8 +297,11 @@ export class AttachmentService {
     if (!attachment) throw new AppError(404, "NOT_FOUND", "Lampiran tidak ditemukan.");
     try {
       return { attachment, stream: await this.storage.read(attachment.storageKey) };
-    } catch {
-      throw new AppError(404, "NOT_FOUND", "File lampiran tidak tersedia.");
+    } catch (error) {
+      if (error instanceof StorageObjectNotFoundError) {
+        throw new AppError(404, "NOT_FOUND", "File lampiran tidak tersedia.");
+      }
+      throw storageUnavailable("Penyimpanan file privat sementara tidak tersedia.");
     }
   }
 
@@ -242,17 +316,13 @@ export class AttachmentService {
       );
     }
 
-    if (!(await this.repository.delete(id, attachment.report.id, actorId))) {
+    const deletion = await this.repository.delete(id, attachment.report.id, actorId);
+    if (deletion.status === "NOT_DELETED") {
       throw new AppError(
         409,
         "REPORT_LOCKED",
         "Lampiran hanya dapat dihapus saat laporan berstatus DRAFT atau REVISION_REQUIRED.",
       );
-    }
-    try {
-      await this.storage.delete(attachment.storageKey);
-    } catch {
-      throw new AppError(500, "INTERNAL_ERROR", "Lampiran sudah dihapus, tetapi file privat belum dapat dibersihkan.");
     }
   }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Activity, Database, RefreshCw } from "lucide-react";
+import { Activity, RefreshCw, ServerCog } from "lucide-react";
 
 import { PageHeader } from "@/components/shared/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -56,17 +56,49 @@ export function HealthPanel() {
 
   const cards = [
     { title: "Proses aplikasi", state: live, icon: Activity },
-    { title: "Kesiapan layanan", state: ready, icon: Database },
+    { title: "Kesiapan aplikasi dan dependensi", state: ready, icon: ServerCog },
   ];
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Teknis" title="Kesehatan sistem" description="Pantau proses aplikasi dan kesiapan database tanpa membuka substansi laporan." actions={<Button type="button" variant="outline" onClick={() => void load()} disabled={loading}><RefreshCw className={loading ? "animate-spin" : ""} />{loading ? "Memeriksa..." : "Muat ulang"}</Button>} />
-      <section className="grid gap-4 md:grid-cols-2" aria-label="Status kesehatan sistem" aria-busy={loading}>
+      <PageHeader
+        eyebrow="Teknis"
+        title="Kesehatan sistem"
+        description="Pantau proses aplikasi serta kesiapan aplikasi, database, dan penyimpanan file privat tanpa membuka substansi laporan."
+        actions={
+          <Button type="button" variant="outline" onClick={() => void load()} disabled={loading}>
+            <RefreshCw className={loading ? "animate-spin" : ""} />
+            {loading ? "Memeriksa..." : "Muat ulang"}
+          </Button>
+        }
+      />
+      <section
+        className="grid gap-4 md:grid-cols-2"
+        aria-label="Status kesehatan sistem"
+        aria-busy={loading}
+      >
         {cards.map(({ title, state, icon: Icon }) => (
           <article key={title} className="rounded-xl border bg-card p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium text-muted-foreground">{title}</p><p className="mt-2 text-xl font-bold">{state.label}</p></div><div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="size-5" aria-hidden="true" /></div></div>
-            <div className="mt-4 space-y-2"><Badge variant={state.status === "available" ? "active" : "warning"}>{state.status === "available" ? "Tersedia" : "Bermasalah"}</Badge><p className="text-sm text-muted-foreground" role={state.status === "unavailable" ? "alert" : undefined}>{state.description}</p></div>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">{title}</p>
+                <p className="mt-2 text-xl font-bold">{state.label}</p>
+              </div>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Icon className="size-5" aria-hidden="true" />
+              </div>
+            </div>
+            <div className="mt-4 space-y-2">
+              <Badge variant={state.status === "available" ? "active" : "warning"}>
+                {state.status === "available" ? "Tersedia" : "Bermasalah"}
+              </Badge>
+              <p
+                className="text-sm text-muted-foreground"
+                role={state.status === "unavailable" ? "alert" : undefined}
+              >
+                {state.description}
+              </p>
+            </div>
           </article>
         ))}
       </section>

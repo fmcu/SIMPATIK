@@ -156,7 +156,6 @@ export class ReportService {
   }
 
   async update(id: string, input: ReportUpdateInput): Promise<ReportDetail> {
-
     const report = await this.detail(id, input.uptScopeId);
     if (!editableStatuses.has(report.status)) {
       throw new AppError(

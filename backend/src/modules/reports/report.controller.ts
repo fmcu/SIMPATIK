@@ -55,7 +55,10 @@ export class ReportController {
   markReviewed = async (request: Request, response: Response): Promise<void> => {
     sendData(
       response,
-      await this.service.markReviewed(routeParam(request, "id"), (request as AuthRequest).auth!.user.id),
+      await this.service.markReviewed(
+        routeParam(request, "id"),
+        (request as AuthRequest).auth!.user.id,
+      ),
     );
   };
 

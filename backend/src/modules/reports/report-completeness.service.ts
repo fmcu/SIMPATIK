@@ -11,7 +11,10 @@ export type ReportCompletenessInput = {
 };
 
 export interface ReportDocumentCompletenessLookup {
-  missingForReport(periodId: string, reportId: string): Promise<Array<{ id: string; name: string }>>;
+  missingForReport(
+    periodId: string,
+    reportId: string,
+  ): Promise<Array<{ id: string; name: string }>>;
 }
 
 export class ReportCompletenessService {
@@ -29,7 +32,10 @@ export class ReportCompletenessService {
         });
       }
       if (!item.narrative?.trim()) {
-        fields.push({ field: `items.${index}.narrative`, message: "Narasi indikator wajib diisi." });
+        fields.push({
+          field: `items.${index}.narrative`,
+          message: "Narasi indikator wajib diisi.",
+        });
       }
     });
 

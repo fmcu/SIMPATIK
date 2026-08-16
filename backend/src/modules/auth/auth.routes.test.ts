@@ -5,7 +5,17 @@ import request from "supertest";
 
 import { createApp } from "../../app.js";
 
-const app = createApp();
+const testStorage = {
+  async write(): Promise<void> {},
+  async read(): Promise<never> {
+    throw new Error("not used");
+  },
+  async delete(): Promise<void> {},
+  async check(): Promise<void> {},
+  close(): void {},
+};
+
+const app = createApp({ storage: testStorage });
 
 test("Better Auth handler is mounted on the Express 5 splat route", async () => {
   const response = await request(app).get("/api/auth/ok");

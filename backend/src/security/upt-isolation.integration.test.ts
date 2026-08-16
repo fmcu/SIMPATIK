@@ -81,9 +81,16 @@ function attachmentRepositoryFor(visibleUpt: string): AttachmentRepository {
         ? { id: "report-a", periodId: "period-1", status: "DRAFT", items: [] }
         : null,
     findRequirement: async () => null,
+    enqueueUploadCleanup: async (storageKey) => ({ id: "upload-cleanup-1", storageKey }),
     create: async () => ({}) as never,
+    resolveUploadCleanup: async () => ({
+      status: "CLEANUP_REQUIRED",
+      attempts: 1,
+      leaseUntil: new Date(),
+    }),
+    completeUploadCleanup: async () => true,
     findById: async (_id, uptScopeId) => (uptScopeId === visibleUpt ? ({} as never) : null),
-    delete: async () => false,
+    delete: async () => ({ status: "NOT_DELETED" }),
   };
 }
 

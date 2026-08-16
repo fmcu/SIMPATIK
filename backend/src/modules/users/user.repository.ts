@@ -72,12 +72,26 @@ export function createUserRepository(database: PrismaClient = new PrismaClient()
       }),
     update: (id, data) => database.user.update({ where: { id }, data }),
     updatePassword: async (id, passwordHash) => {
-      const account = await database.account.findFirst({ where: { userId: id, providerId: "credential" }, select: { id: true } });
+      const account = await database.account.findFirst({
+        where: { userId: id, providerId: "credential" },
+        select: { id: true },
+      });
       if (account) {
-        await database.account.update({ where: { id: account.id }, data: { password: passwordHash } });
+        await database.account.update({
+          where: { id: account.id },
+          data: { password: passwordHash },
+        });
         return;
       }
-      await database.account.create({ data: { id: `${id}-credential`, accountId: id, providerId: "credential", userId: id, password: passwordHash } });
+      await database.account.create({
+        data: {
+          id: `${id}-credential`,
+          accountId: id,
+          providerId: "credential",
+          userId: id,
+          password: passwordHash,
+        },
+      });
     },
   };
 }

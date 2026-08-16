@@ -145,15 +145,14 @@ export interface ReportRepository {
     actorId: string;
     message: string;
   }): Promise<ReportDetail | "NOT_FOUND" | "INVALID_STATUS">;
-   markReviewed(input: {
-     id: string;
-     actorId: string;
-   }): Promise<ReportDetail | "NOT_FOUND" | "INVALID_STATUS">;
-   approve(input: {
-     id: string;
-     actorId: string;
-   }): Promise<ReportDetail | "NOT_FOUND" | "INVALID_STATUS">;
-
+  markReviewed(input: {
+    id: string;
+    actorId: string;
+  }): Promise<ReportDetail | "NOT_FOUND" | "INVALID_STATUS">;
+  approve(input: {
+    id: string;
+    actorId: string;
+  }): Promise<ReportDetail | "NOT_FOUND" | "INVALID_STATUS">;
 }
 
 function whereForScope(id: string, uptScopeId?: string): Prisma.ReportWhereInput {
@@ -346,7 +345,9 @@ export function createReportRepository(database: PrismaClient): ReportRepository
         if (!report) return "NOT_FOUND";
         if (report.status !== "SUBMITTED") return "INVALID_STATUS";
 
-        await transaction.reviewComment.create({ data: { reportId: id, createdById: actorId, message } });
+        await transaction.reviewComment.create({
+          data: { reportId: id, createdById: actorId, message },
+        });
         await transaction.auditLog.create({
           data: {
             actorId,
@@ -356,7 +357,10 @@ export function createReportRepository(database: PrismaClient): ReportRepository
             metadata: { status: report.status },
           },
         });
-        const detail = await transaction.report.findUnique({ where: { id }, select: reportDetailSelect });
+        const detail = await transaction.report.findUnique({
+          where: { id },
+          select: reportDetailSelect,
+        });
         if (!detail) throw new Error("Laporan yang diberi catatan tidak ditemukan.");
         return detail;
       });
@@ -375,7 +379,9 @@ export function createReportRepository(database: PrismaClient): ReportRepository
           data: { status: "REVISION_REQUIRED" },
         });
         if (updated.count !== 1) return "INVALID_STATUS";
-        await transaction.reviewComment.create({ data: { reportId: id, createdById: actorId, message } });
+        await transaction.reviewComment.create({
+          data: { reportId: id, createdById: actorId, message },
+        });
         await transaction.statusHistory.create({
           data: {
             reportId: id,
@@ -394,7 +400,10 @@ export function createReportRepository(database: PrismaClient): ReportRepository
             metadata: { fromStatus: "SUBMITTED", toStatus: "REVISION_REQUIRED" },
           },
         });
-        const detail = await transaction.report.findUnique({ where: { id }, select: reportDetailSelect });
+        const detail = await transaction.report.findUnique({
+          where: { id },
+          select: reportDetailSelect,
+        });
         if (!detail) throw new Error("Laporan yang dikembalikan tidak ditemukan.");
         return detail;
       });
@@ -426,42 +435,48 @@ export function createReportRepository(database: PrismaClient): ReportRepository
             metadata: { fromStatus: "SUBMITTED", toStatus: "REVIEWED", reviewedAt },
           },
         });
-        const detail = await transaction.report.findUnique({ where: { id }, select: reportDetailSelect });
+        const detail = await transaction.report.findUnique({
+          where: { id },
+          select: reportDetailSelect,
+        });
         if (!detail) throw new Error("Laporan yang direviu tidak ditemukan.");
         return detail;
       });
-     },
-     async approve({ id, actorId }) {
-       return database.$transaction(async (transaction) => {
-         const report = await transaction.report.findUnique({
-           where: { id },
-           select: { id: true, status: true },
-         });
-         if (!report) return "NOT_FOUND";
-         if (report.status !== "REVIEWED") return "INVALID_STATUS";
-
-         const approvedAt = new Date();
-         const updated = await transaction.report.updateMany({
-           where: { id, status: "REVIEWED" },
-           data: { status: "APPROVED", approvedById: actorId, approvedAt },
-         });
-         if (updated.count !== 1) return "INVALID_STATUS";
-         await transaction.statusHistory.create({
-           data: { reportId: id, fromStatus: "REVIEWED", toStatus: "APPROVED", actorId },
-         });
-         await transaction.auditLog.create({
-           data: {
-             actorId,
-             action: "REPORT_APPROVED",
-             entityType: "Report",
-             entityId: id,
-             metadata: { fromStatus: "REVIEWED", toStatus: "APPROVED", approvedAt },
-           },
-         });
-         const detail = await transaction.report.findUnique({ where: { id }, select: reportDetailSelect });
-         if (!detail) throw new Error("Laporan yang disetujui tidak ditemukan.");
-         return detail;
+    },
+    async approve({ id, actorId }) {
+      return database.$transaction(async (transaction) => {
+        const report = await transaction.report.findUnique({
+          where: { id },
+          select: { id: true, status: true },
         });
-      },
-    };
-  }
+        if (!report) return "NOT_FOUND";
+        if (report.status !== "REVIEWED") return "INVALID_STATUS";
+
+        const approvedAt = new Date();
+        const updated = await transaction.report.updateMany({
+          where: { id, status: "REVIEWED" },
+          data: { status: "APPROVED", approvedById: actorId, approvedAt },
+        });
+        if (updated.count !== 1) return "INVALID_STATUS";
+        await transaction.statusHistory.create({
+          data: { reportId: id, fromStatus: "REVIEWED", toStatus: "APPROVED", actorId },
+        });
+        await transaction.auditLog.create({
+          data: {
+            actorId,
+            action: "REPORT_APPROVED",
+            entityType: "Report",
+            entityId: id,
+            metadata: { fromStatus: "REVIEWED", toStatus: "APPROVED", approvedAt },
+          },
+        });
+        const detail = await transaction.report.findUnique({
+          where: { id },
+          select: reportDetailSelect,
+        });
+        if (!detail) throw new Error("Laporan yang disetujui tidak ditemukan.");
+        return detail;
+      });
+    },
+  };
+}

@@ -7,6 +7,9 @@ export type HealthState = {
   description: string;
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
 export function settingsPanelForRole(role?: AppRole): SettingsPanel {
   if (role === "ADMIN_SIMPATIK") return "audit";
   if (role === "SYSTEM_ADMIN") return "health";
@@ -19,20 +22,48 @@ export function healthStateFromResponse(
   payload: unknown,
 ): HealthState {
   if (statusCode >= 200 && statusCode < 300) {
+    const data = isRecord(payload) ? payload.data : undefined;
+    if (isRecord(data) && data.status === "ok") {
+      return {
+        status: "available",
+        label: "Aktif",
+        description: "Proses aplikasi sedang berjalan.",
+      };
+    }
+    if (
+      isRecord(data) &&
+      data.status === "ready" &&
+      isRecord(data.dependencies) &&
+      data.dependencies.database === "ready" &&
+      data.dependencies.storage === "ready"
+    ) {
+      return {
+        status: "available",
+        label: "Siap",
+        description: "Aplikasi, database, dan penyimpanan file privat siap melayani.",
+      };
+    }
     return {
-      status: "available",
-      label: endpoint === "live" ? "Aktif" : "Siap",
-      description:
-        endpoint === "live" ? "Proses aplikasi sedang berjalan." : "Aplikasi dan database siap melayani.",
+      status: "unavailable",
+      label: endpoint === "live" ? "Tidak aktif" : "Tidak siap",
+      description: "Respons server tidak valid.",
     };
   }
   const message =
-    typeof payload === "object" && payload !== null && "error" in payload &&
-    typeof payload.error === "object" && payload.error !== null && "message" in payload.error &&
+    typeof payload === "object" &&
+    payload !== null &&
+    "error" in payload &&
+    typeof payload.error === "object" &&
+    payload.error !== null &&
+    "message" in payload.error &&
     typeof payload.error.message === "string"
       ? payload.error.message
       : endpoint === "live"
         ? "Proses aplikasi tidak tersedia."
-        : "Aplikasi belum siap melayani.";
-  return { status: "unavailable", label: endpoint === "live" ? "Tidak aktif" : "Tidak siap", description: message };
+        : "Aplikasi, database, atau penyimpanan file privat belum siap melayani.";
+  return {
+    status: "unavailable",
+    label: endpoint === "live" ? "Tidak aktif" : "Tidak siap",
+    description: message,
+  };
 }

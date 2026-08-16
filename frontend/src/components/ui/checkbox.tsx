@@ -15,7 +15,10 @@ const Checkbox = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HT
         )}
         {...props}
       />
-      <Check className="pointer-events-none absolute hidden size-3.5 text-primary-foreground peer-checked:block" aria-hidden="true" />
+      <Check
+        className="pointer-events-none absolute hidden size-3.5 text-primary-foreground peer-checked:block"
+        aria-hidden="true"
+      />
     </span>
   ),
 );

@@ -28,6 +28,16 @@ function session(role: Role): RequestHandler {
   };
 }
 
+const testStorage = {
+  async write(): Promise<void> {},
+  async read(): Promise<never> {
+    throw new Error("not used");
+  },
+  async delete(): Promise<void> {},
+  async check(): Promise<void> {},
+  close(): void {},
+};
+
 function appFor(role: Role, reader: AuditLogReader) {
   const app = express();
   app.use("/api/audit", createAuditRouter(reader, session(role)));
@@ -37,14 +47,16 @@ function appFor(role: Role, reader: AuditLogReader) {
 
 const reader: AuditLogReader = {
   list: async () => ({
-    items: [{
-      id: "audit-1",
-      action: "USER_UPDATED",
-      entityType: "User",
-      entityId: "user-1",
-      createdAt: new Date("2026-08-09T10:00:00.000Z"),
-      actor: { id: "admin-1", name: "Admin", email: "admin@example.test" },
-    }],
+    items: [
+      {
+        id: "audit-1",
+        action: "USER_UPDATED",
+        entityType: "User",
+        entityId: "user-1",
+        createdAt: new Date("2026-08-09T10:00:00.000Z"),
+        actor: { id: "admin-1", name: "Admin", email: "admin@example.test" },
+      },
+    ],
     total: 1,
   }),
 };
@@ -72,7 +84,7 @@ test("GET /api/audit/logs denies System Administrator", async () => {
 });
 
 test("application mounts the protected audit log endpoint", async () => {
-  const response = await request(createApp()).get("/api/audit/logs");
+  const response = await request(createApp({ storage: testStorage })).get("/api/audit/logs");
 
   assert.equal(response.status, 401);
   assert.equal(response.body.error.code, "AUTHENTICATION_REQUIRED");

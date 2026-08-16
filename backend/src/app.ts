@@ -13,6 +13,7 @@ import { logger } from "./middleware/logger.js";
 import { requestId } from "./middleware/request-id.js";
 import { createHealthRouter } from "./modules/health/health.routes.js";
 import type { DatabaseReadinessClient } from "./services/readiness.service.js";
+import type { ManagedPrivateStorageAdapter } from "./services/private-storage.service.js";
 import { createUptRouter } from "./modules/upts/upt.routes.js";
 import { createUserRouter } from "./modules/users/user.routes.js";
 import { createPeriodRouter } from "./modules/periods/period.routes.js";
@@ -28,7 +29,15 @@ import { createAuditRouter } from "./modules/audit/audit.routes.js";
 import { createAuditRepository } from "./modules/shared/audit.repository.js";
 import { prisma } from "./config/prisma.js";
 
-export function createApp(database?: DatabaseReadinessClient): express.Express {
+export type AppDependencies = {
+  database?: DatabaseReadinessClient;
+  storage: ManagedPrivateStorageAdapter;
+  healthRequireSession?: import("express").RequestHandler;
+};
+
+export function createApp(dependencies: AppDependencies): express.Express {
+  const database = dependencies.database ?? prisma;
+  const storage = dependencies.storage;
   const app = express();
 
   app.disable("x-powered-by");
@@ -96,12 +105,21 @@ export function createApp(database?: DatabaseReadinessClient): express.Express {
   app.use(express.json({ limit: "1mb", strict: true }));
   app.use(express.urlencoded({ extended: false, limit: "64kb" }));
 
-  app.use("/health", createHealthRouter(database));
+  app.use(
+    "/health",
+    createHealthRouter({
+      database,
+      storage,
+      ...(dependencies.healthRequireSession
+        ? { requireSession: dependencies.healthRequireSession }
+        : {}),
+    }),
+  );
   app.use("/api/upts", createUptRouter());
   app.use("/api/users", createUserRouter());
   app.use("/api/periods", createPeriodRouter());
-  app.use("/api/reports", createReportRouter());
-  app.use("/api/attachments", createAttachmentRouter());
+  app.use("/api/reports", createReportRouter({ storage }));
+  app.use("/api/attachments", createAttachmentRouter({ storage }));
   app.use("/api/dashboard", createDashboardRouter());
   app.use("/api/exports", createExportRouter());
   app.use("/api/audit", createAuditRouter());
@@ -114,5 +132,3 @@ export function createApp(database?: DatabaseReadinessClient): express.Express {
 
   return app;
 }
-
-export const app = createApp();

@@ -56,11 +56,12 @@ export function createDocumentRepository(database: PrismaClient): DocumentReposi
   return {
     list: (scope) =>
       database.requiredDocument.findMany({
-        where: scope.periodId === undefined
-          ? scope.indicatorId === undefined
-            ? {}
-            : { indicatorId: scope.indicatorId }
-          : { OR: [{ periodId: scope.periodId }, { indicator: { periodId: scope.periodId } }] },
+        where:
+          scope.periodId === undefined
+            ? scope.indicatorId === undefined
+              ? {}
+              : { indicatorId: scope.indicatorId }
+            : { OR: [{ periodId: scope.periodId }, { indicator: { periodId: scope.periodId } }] },
         orderBy: { order: "asc" },
       }),
     findById: (id) =>

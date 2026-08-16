@@ -15,15 +15,19 @@ const statusToCode: Record<number, ApiErrorCode> = {
   429: "RATE_LIMITED",
 };
 
-export const errorHandler: ErrorRequestHandler = (error, request, response, next) => {
+export const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
   void next;
   const isAppError = error instanceof AppError;
   const isRequestTooLarge = !isAppError && error?.type === "entity.too.large";
   const isInvalidJson = !isAppError && error?.type === "entity.parse.failed";
-  const statusCode = isAppError ? error.statusCode : isRequestTooLarge ? 413 : isInvalidJson ? 400 : 500;
-  const code = isAppError
-    ? error.code
-    : (statusToCode[statusCode] ?? "INTERNAL_ERROR");
+  const statusCode = isAppError
+    ? error.statusCode
+    : isRequestTooLarge
+      ? 413
+      : isInvalidJson
+        ? 400
+        : 500;
+  const code = isAppError ? error.code : (statusToCode[statusCode] ?? "INTERNAL_ERROR");
   const message = isAppError
     ? error.message
     : isRequestTooLarge
@@ -33,12 +37,16 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, next
         : "Terjadi kesalahan internal.";
   const fields = isAppError ? error.fields : [];
 
-  if (!isAppError) {
+  if (isAppError && statusCode === 503) {
+    writeLog("warn", "expected_service_unavailable", {
+      requestId: response.locals.requestId,
+      code,
+    });
+  } else if (statusCode >= 500) {
     writeLog("error", "unhandled_error", {
       requestId: response.locals.requestId,
-      errorName: error instanceof Error ? error.name : "UnknownError",
-      method: request.method,
-      path: request.path,
+      statusCode,
+      code,
     });
   }
 

@@ -7,7 +7,10 @@ import type { AuditRepository } from "../shared/audit.repository.js";
 import type { IndicatorRepository } from "./indicator.repository.js";
 import { IndicatorService } from "./indicator.service.js";
 
-function indicator(status: "DRAFT" | "ACTIVE", approvalStatus: "PENDING" | "APPROVED" | "REJECTED" = "PENDING") {
+function indicator(
+  status: "DRAFT" | "ACTIVE",
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED" = "PENDING",
+) {
   return {
     id: "indicator-1",
     periodId: "period-1",

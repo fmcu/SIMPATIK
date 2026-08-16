@@ -9,7 +9,10 @@ export type RequiredDocumentRequirement = {
 export class ReportDocumentValidator {
   constructor(private readonly repository: DocumentRepository) {}
 
-  async missingForReport(periodId: string, reportId: string): Promise<RequiredDocumentRequirement[]> {
+  async missingForReport(
+    periodId: string,
+    reportId: string,
+  ): Promise<RequiredDocumentRequirement[]> {
     const [requirements, attachmentRequirementIds] = await Promise.all([
       this.repository.requiredForReport(periodId),
       this.repository.attachmentRequirementIds(reportId),

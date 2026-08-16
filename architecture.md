@@ -210,22 +210,33 @@ PostgreSQL menjadi sumber data resmi untuk:
 - Periode dan indikator.
 - Laporan serta item laporan.
 - Metadata dokumen.
+- Antrean durable `StorageDeletionTask` untuk penghapusan object storage.
 - Catatan reviu.
 - Histori status.
 - Audit log.
 
 ### 6.5 File storage
 
-File tidak disimpan sebagai byte besar di PostgreSQL. Database hanya menyimpan metadata dan storage key.
+File tidak disimpan sebagai byte besar di PostgreSQL. Database hanya menyimpan metadata dan `Attachment.storageKey` sebagai **logical key** relatif yang dibuat acak; nama asli hanya menjadi metadata. Logical key tidak memuat absolute path, bucket, endpoint, atau URL. Driver memetakannya ke `${STORAGE_BUCKET}/${storageKey}` pada `local`, atau ke object key `${S3_KEY_PREFIX}/${storageKey}` pada `s3` dengan separator yang dinormalisasi.
+
+Driver dipilih saat deployment:
+
+- `STORAGE_DRIVER=local` menyimpan file pada direktori persisten yang ditunjuk `STORAGE_BUCKET`. Mode ini mendukung satu instance Express. Beberapa instance hanya aman bila semuanya memakai mount durable shared RWX yang sama dan memiliki semantik filesystem konsisten; filesystem container lokal/ephemeral tidak boleh dipakai.
+- `STORAGE_DRIVER=s3` memakai AWS S3 saat `S3_ENDPOINT` kosong, atau endpoint S3-compatible yang dikonfigurasi saat `S3_ENDPOINT` diisi. Semua instance Express dapat memakai bucket dan prefix yang sama sehingga mode ini mendukung deployment multi-instance.
+
+Endpoint yang dapat dikonfigurasi mencakup MinIO, Cloudflare R2, dan Wasabi. Penyebutan tersebut adalah contoh konfigurasi protokol S3-compatible, bukan sertifikasi provider; kompatibilitas API, region, path style, TLS, versioning, dan lifecycle harus diverifikasi terhadap provider dan versi yang dipakai.
 
 Aturan minimum:
 
-- Bucket/direktori bersifat privat.
-- Nama storage dibuat acak.
-- Nama asli hanya disimpan sebagai metadata.
-- Download diberikan melalui backend setelah pemeriksaan akses.
-- Ukuran dan tipe file dibatasi.
-- File yang sudah menjadi bukti laporan resmi tidak dapat dihapus melalui alur biasa.
+- Bucket/direktori bersifat privat. Untuk S3, blokir public access, jangan memakai object ACL, dan jangan memberi izin `s3:PutObjectAcl`.
+- Browser tidak mengakses storage langsung; upload dan download melewati backend setelah authorization. Karena itu bucket tidak memerlukan browser CORS.
+- Ukuran dan tipe file dibatasi. File yang sudah menjadi bukti laporan resmi tidak dapat dihapus melalui alur biasa.
+- Koneksi ke object storage produksi wajib memakai TLS dengan sertifikat tervalidasi; jangan menonaktifkan verifikasi TLS pada custom endpoint.
+- S3 memakai AWS SDK default credential provider chain. Di AWS, utamakan IAM role/workload identity. Jika static credential diperlukan untuk endpoint compatible, simpan di secret manager dan inject melalui variable standar AWS; jangan menaruh secret di repository atau image.
+- IAM hanya memerlukan `s3:GetObject`, `s3:PutObject`, dan `s3:DeleteObject` pada dua namespace object di bawah `S3_KEY_PREFIX`: `attachments/*` untuk lampiran dan `.simpatik-storage-check/*` untuk probe readiness. `s3:HeadBucket`, `s3:ListBucket`, izin ACL, dan izin administrasi bucket tidak diperlukan.
+- Readiness `s3` menjalankan probe privat `PutObject`/`GetObject`/`DeleteObject` berukuran kecil dan berbatas waktu pada key acak di `${S3_KEY_PREFIX}/.simpatik-storage-check/`; prefix kosong diperlakukan tanpa leading slash. Probe menghapus object dalam blok cleanup, tidak melakukan listing, dan kegagalan cleanup membuat storage dinyatakan tidak siap.
+- Readiness `local` membuat file probe privat dengan nama acak pada direktori `STORAGE_BUCKET`, lalu menghapusnya; kegagalan create atau delete membuat storage dinyatakan tidak siap.
+- Setelah upload pertama, perlakukan `STORAGE_DRIVER`, `STORAGE_BUCKET`, dan `S3_KEY_PREFIX` sebagai immutable untuk environment tersebut. Perubahan memerlukan cutover terencana.
 
 ## 7. Autentikasi dan Otorisasi
 
@@ -291,19 +302,20 @@ Aturan penting:
 
 ### 8.1 Entitas
 
-| Entitas | Field utama |
-|---|---|
-| User | id, name, email, role, uptId, active |
-| Session | field session Better Auth |
-| UPT | id, code, name, active |
-| ReportingPeriod | id, name, startDate, dueDate, status |
-| Indicator | id, periodId, code, name, required, order |
-| Report | id, uptId, periodId, status, version, createdById, submittedAt, reviewedAt, approvedAt |
-| ReportItem | id, reportId, indicatorId, value, narrative |
-| Attachment | id, reportId, reportItemId, storageKey, originalName, mimeType, size, uploadedById |
-| ReviewComment | id, reportId, message, createdById, createdAt |
-| StatusHistory | id, reportId, fromStatus, toStatus, actorId, note, createdAt |
-| AuditLog | id, actorId, action, entityType, entityId, metadata, createdAt |
+| Entitas             | Field utama                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| User                | id, name, email, role, uptId, active                                                   |
+| Session             | field session Better Auth                                                              |
+| UPT                 | id, code, name, active                                                                 |
+| ReportingPeriod     | id, name, startDate, dueDate, status                                                   |
+| Indicator           | id, periodId, code, name, required, order                                              |
+| Report              | id, uptId, periodId, status, version, createdById, submittedAt, reviewedAt, approvedAt |
+| ReportItem          | id, reportId, indicatorId, value, narrative                                            |
+| Attachment          | id, reportId, reportItemId, storageKey, originalName, mimeType, size, uploadedById     |
+| StorageDeletionTask | id, storageKey, attempts, nextAttemptAt, repeatUntilCancelled, createdAt, updatedAt    |
+| ReviewComment       | id, reportId, message, createdById, createdAt                                          |
+| StatusHistory       | id, reportId, fromStatus, toStatus, actorId, note, createdAt                           |
+| AuditLog            | id, actorId, action, entityType, entityId, metadata, createdAt                         |
 
 ### 8.2 Relasi utama
 
@@ -346,6 +358,15 @@ Setiap transisi:
 5. Menulis StatusHistory.
 6. Menulis AuditLog.
 7. Menjalankan seluruh perubahan dalam satu transaksi Prisma.
+
+Penghapusan lampiran memakai transactional outbox `StorageDeletionTask` karena transaksi database tidak dapat digabung secara atomik dengan object storage:
+
+1. Dalam satu transaksi Prisma, backend memeriksa status laporan, menghapus metadata `Attachment`, membuat `StorageDeletionTask` unik berdasarkan `storageKey`, lalu menulis `AuditLog`.
+2. Commit transaksi menjadi batas keberhasilan request. Request tidak menghapus object secara langsung; worker menjadi satu-satunya pemilik cleanup setelah penghapusan metadata.
+3. Worker mengambil task melalui claim dan lease atomik sebelum menghapus object. Fence pada `attempts` dan waktu lease mencegah dua instance memproses atau menyelesaikan claim yang sama.
+4. Delete bersifat idempotent: object yang sudah tidak ada dianggap berhasil. Kegagalan dijadwalkan ulang melalui `attempts` dan `nextAttemptAt` dengan exponential backoff berbatas maksimum; task penghapusan biasa baru dihapus setelah delete object berhasil.
+
+Upload memakai tombstone durable sebelum object ditulis. Tombstone bertanda `repeatUntilCancelled` hanya dapat dikonsumsi oleh transaksi yang sekaligus membuat metadata `Attachment` dan `AuditLog` selama tombstone belum diklaim. Jika write atau transaksi metadata gagal, cleanup terlebih dahulu mengklaim tombstone secara atomik; worker terus menghapus object dan menjadwalkan tombstone berulang sampai service membatalkannya setelah write telah selesai dan delete terverifikasi. Karena worker tidak menyelesaikan sendiri tombstone berulang, crash proses atau object yang muncul terlambat setelah respons provider ambigu tetap dapat direkonsiliasi. Jika hasil commit metadata ambigu, kegagalan claim diikuti pemeriksaan `Attachment.storageKey`; object tidak dihapus ketika metadata telah commit atau hasilnya belum dapat dipastikan.
 
 ## 10. API MVP
 
@@ -397,8 +418,8 @@ Setiap transisi:
 
 ### Sistem
 
-- `GET /health/live`
-- `GET /health/ready`
+- `GET /health/live` — liveness proses; dilindungi session (System Administrator), rate-limit per menit.
+- `GET /health/ready` — readiness database dan private file storage; dilindungi session, rate-limit per menit, deadline 8 detik per dependensi. Respons 503 `DEPENDENCY_TIMEOUT` bila pemeriksaan melebihi batas; `DATABASE_UNAVAILABLE` / `STORAGE_UNAVAILABLE` bila dependensi gagal. 503 yang diharapkan dicatat sebagai log `warn` `expected_service_unavailable`, bukan `error` `unhandled_error`.
 
 ## 11. Format API
 
@@ -456,7 +477,7 @@ https://simpatik.example.go.id/api   → reverse proxy ke Express
 
 - Structured application log.
 - Request/correlation ID.
-- Health check untuk aplikasi dan database.
+- Health check liveness untuk proses aplikasi serta readiness untuk database dan private file storage. Endpoint health hanya dapat diakses System Administrator dan dibatasi rate-limit; readiness memakai deadline per dependensi agar pemeriksaan tidak menggantung.
 - Pencatatan error tanpa data sensitif.
 - Monitoring waktu respons dan error rate.
 - Backup PostgreSQL terjadwal.
@@ -501,22 +522,36 @@ Reverse proxy
 ├── Next.js process/container
 └── Express.js process/container
       ├── PostgreSQL
-      └── Private file storage
+      └── local persistent storage atau private S3/S3-compatible storage
 ```
 
 Pipeline minimum:
 
 1. Install dependency dengan lockfile.
 2. Lint dan type-check.
-3. Jalankan unit/integration test.
+3. Jalankan unit/integration test, termasuk contract test kedua storage driver.
 4. Build frontend dan backend.
-5. Jalankan Prisma migration terkontrol.
-6. Deploy.
-7. Jalankan smoke test.
+5. Jalankan Prisma migration terkontrol. Migration yang membuat tabel `StorageDeletionTask` dan migration berikutnya yang menambahkan `repeatUntilCancelled` wajib selesai sebelum backend baru dijalankan agar upload, request delete, dan worker tidak mengakses schema lama.
+6. Deploy backend baru; worker penghapusan berjalan di lifecycle proses backend yang sama. Jangan ubah driver, bucket, atau prefix environment yang sudah berisi upload.
+7. Jalankan readiness dan smoke test upload/download/delete sesuai aturan workflow.
+
+`/health/ready` gagal bila database atau storage tidak siap dan hanya dapat diakses System Administrator (session) dengan rate-limit. Driver `local` membuat lalu menghapus file probe privat pada direktori yang dikonfigurasi. Driver `s3` menjalankan probe privat `PutObject`/`GetObject`/`DeleteObject` berbatas waktu pada key acak di namespace `.simpatik-storage-check/` di bawah `S3_KEY_PREFIX`; probe tidak memakai `HeadBucket` atau `ListBucket`. Liveness tidak bergantung pada storage. Pemeriksaan readiness dibatasi deadline per dependensi (8 detik); kegagalan deadline dikembalikan sebagai `503 DEPENDENCY_TIMEOUT`.
+
+Environment S3 hanya dibaca dan divalidasi ketika `STORAGE_DRIVER=s3`. Deployment dengan driver `local` boleh menyisakan nilai `S3_*` yang tidak aktif tanpa memengaruhi startup.
+
+Tidak ada migrasi otomatis atau dual-write antar-driver, bucket, maupun prefix. Cutover file yang sudah ada dilakukan sebagai operasi terencana:
+
+1. Hentikan upload/delete atau aktifkan maintenance mode.
+2. Salin seluruh object ke target dengan mempertahankan setiap logical `storageKey`; tambahkan `S3_KEY_PREFIX` hanya sebagai namespace target. Tidak perlu mengubah `Attachment.storageKey`.
+3. Verifikasi jumlah, ukuran/checksum bila tersedia, metadata penting, serta sampel download melalui backend.
+4. Ganti konfigurasi secara atomik, jalankan readiness dan smoke test, lalu buka kembali write traffic.
+5. Pertahankan sumber untuk rollback sampai verifikasi dan masa retensi cutover selesai; hapus hanya melalui prosedur yang disetujui.
+
+Backup disesuaikan dengan driver dan metadata PostgreSQL. `local` memerlukan backup terjadwal atas volume bersama; S3 sebaiknya mengaktifkan versioning dan, bila kebutuhan pemulihan menuntut, backup/replication terpisah. Lifecycle boleh membersihkan incomplete multipart upload dan versi lama hanya setelah retensinya selaras dengan kebijakan bukti, audit, backup, serta pemulihan. Uji restore file bersama restore metadata database; versioning dan lifecycle bukan pengganti pengujian restore.
 
 ## 16. Environment
 
-Minimum:
+Konfigurasi umum:
 
 ```text
 NODE_ENV
@@ -526,12 +561,38 @@ DATABASE_URL
 BETTER_AUTH_URL
 BETTER_AUTH_SECRET
 TRUSTED_ORIGINS
-STORAGE_DRIVER
+STORAGE_DRIVER=local|s3
 STORAGE_BUCKET
 MAX_UPLOAD_SIZE
 ```
 
-Nilai rahasia tidak boleh menggunakan contoh default pada produksi.
+Konfigurasi driver `s3`:
+
+```text
+S3_REGION
+S3_ENDPOINT
+S3_FORCE_PATH_STYLE
+S3_KEY_PREFIX
+```
+
+- `STORAGE_BUCKET`: path direktori untuk `local`; nama bucket, tanpa URL atau prefix, untuk `s3`.
+- `S3_REGION`: region signing/API yang diwajibkan provider.
+- `S3_ENDPOINT`: kosong untuk AWS S3; URL HTTPS penuh untuk endpoint S3-compatible.
+- `S3_FORCE_PATH_STYLE`: boolean eksplisit; `true` hanya bila endpoint memerlukan path-style addressing.
+- `S3_KEY_PREFIX`: namespace object tanpa leading slash; boleh kosong, tetapi tidak boleh berubah setelah upload tanpa prosedur cutover.
+
+Contoh deployment, bukan nilai default atau sertifikasi provider:
+
+| Provider      | `S3_ENDPOINT`                                                       | `S3_REGION`                                      | `S3_FORCE_PATH_STYLE`            |
+| ------------- | ------------------------------------------------------------------- | ------------------------------------------------ | -------------------------------- |
+| AWS S3        | kosong                                                              | region bucket, misalnya `ap-southeast-1`         | `false`                          |
+| MinIO         | URL HTTPS deployment, misalnya `https://minio.example.go.id`        | region yang dikonfigurasi pada MinIO             | umumnya `true`; ikuti deployment |
+| Cloudflare R2 | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`                     | nilai signing yang ditentukan R2, umumnya `auto` | ikuti dokumentasi endpoint       |
+| Wasabi        | endpoint region, misalnya `https://s3.ap-southeast-1.wasabisys.com` | region bucket                                    | ikuti dokumentasi endpoint       |
+
+SDK memakai AWS default credential provider chain, bukan nama credential khusus aplikasi. Variable standar yang relevan mencakup `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, dan opsional `AWS_SESSION_TOKEN`; profile lokal dapat memakai `AWS_PROFILE`, `AWS_SHARED_CREDENTIALS_FILE`, dan `AWS_CONFIG_FILE`; workload identity dapat memakai `AWS_ROLE_ARN` dan `AWS_WEB_IDENTITY_TOKEN_FILE`. Credential container/instance role ditemukan otomatis oleh provider chain. Produksi mengutamakan IAM role/workload identity; bila static secret tak terhindarkan, inject dari secret manager dan rotasi berkala.
+
+Nilai rahasia tidak boleh menggunakan contoh default pada produksi. `S3_ENDPOINT`, `S3_REGION`, dan perilaku path-style untuk MinIO, R2, Wasabi, atau provider lain wajib diuji pada environment target karena dukungan ini configurable S3-compatible, bukan provider-certified.
 
 ## 17. Architecture Decision Records
 

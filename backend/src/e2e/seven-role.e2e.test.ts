@@ -8,6 +8,7 @@ import type { Role } from "@simpatik/contracts";
 import type { AuthRequest } from "../middleware/auth.types.js";
 import type { AuthSession } from "../modules/auth/auth.js";
 import { errorHandler } from "../middleware/error-handler.js";
+import type { PrivateStorageAdapter } from "../services/private-storage.service.js";
 import {
   createReportRouter,
   type ReportControllerHandlers,
@@ -22,6 +23,14 @@ const roles: Role[] = [
   "ADMIN_SIMPATIK",
   "SYSTEM_ADMIN",
 ];
+
+const storage: PrivateStorageAdapter = {
+  async write(): Promise<void> {},
+  async read(): Promise<never> {
+    throw new Error("not used");
+  },
+  async delete(): Promise<void> {},
+};
 
 const allowed = {
   list: new Set<Role>([
@@ -63,6 +72,7 @@ function app(role: Role) {
     "/api/reports",
     createReportRouter({
       controller: controller(),
+      storage,
       requireSession: (request, _response, next) => {
         (request as AuthRequest).auth = {
           session: {} as AuthSession,

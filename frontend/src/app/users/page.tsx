@@ -12,7 +12,14 @@ import { PageHeader } from "@/components/shared/page-header";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -21,7 +28,14 @@ import { errorMessage, roleLabels, roles } from "@/lib/admin-helpers";
 import { useRequireSession, type AppRole } from "@/lib/auth-provider";
 
 const uptRoles: AppRole[] = ["PETUGAS_UPT", "KOORDINATOR_UPT"];
-const initialForm: UserInput = { name: "", email: "", password: "", role: "PETUGAS_UPT", uptId: null, active: true };
+const initialForm: UserInput = {
+  name: "",
+  email: "",
+  password: "",
+  role: "PETUGAS_UPT",
+  uptId: null,
+  active: true,
+};
 const emptyPagination = { page: 1, pageSize: 10, total: 0, totalPages: 0 };
 
 export default function UsersPage() {
@@ -81,19 +95,37 @@ export default function UsersPage() {
 
   useEffect(() => {
     if (!allowed) return;
-    const timer = window.setTimeout(() => { void load(); void loadUpts(); }, 0);
+    const timer = window.setTimeout(() => {
+      void load();
+      void loadUpts();
+    }, 0);
     return () => window.clearTimeout(timer);
   }, [allowed, load, loadUpts]);
 
   function openForm(row?: User) {
     setEditing(row ?? null);
-    setForm(row ? { name: row.name, email: row.email, password: "", role: row.role, uptId: row.uptId ?? null, active: row.active } : { ...initialForm });
+    setForm(
+      row
+        ? {
+            name: row.name,
+            email: row.email,
+            password: "",
+            role: row.role,
+            uptId: row.uptId ?? null,
+            active: row.active,
+          }
+        : { ...initialForm },
+    );
     setFormError(null);
     setDialogOpen(true);
   }
 
   function changeRole(nextRole: AppRole) {
-    setForm((current) => ({ ...current, role: nextRole, uptId: uptRoles.includes(nextRole) ? current.uptId : null }));
+    setForm((current) => ({
+      ...current,
+      role: nextRole,
+      uptId: uptRoles.includes(nextRole) ? current.uptId : null,
+    }));
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -117,7 +149,13 @@ export default function UsersPage() {
     setSaving(true);
     setFormError(null);
     try {
-      const body: UserInput = { name: form.name.trim(), email: form.email.trim(), role: form.role, uptId: uptRoles.includes(form.role) ? form.uptId : null, active: form.active };
+      const body: UserInput = {
+        name: form.name.trim(),
+        email: form.email.trim(),
+        role: form.role,
+        uptId: uptRoles.includes(form.role) ? form.uptId : null,
+        active: form.active,
+      };
       if (form.password?.trim()) body.password = form.password;
       if (editing) await apiClient.users.update(editing.id, body);
       else await apiClient.users.create({ ...body, password: form.password });
@@ -144,19 +182,45 @@ export default function UsersPage() {
   }
 
   const columns: DataTableColumn<User>[] = [
-    { id: "user", header: "Pengguna", cell: (row) => <div><p className="font-semibold">{row.name}</p><p className="text-xs text-muted-foreground">{row.email}</p></div> },
+    {
+      id: "user",
+      header: "Pengguna",
+      cell: (row) => (
+        <div>
+          <p className="font-semibold">{row.name}</p>
+          <p className="text-xs text-muted-foreground">{row.email}</p>
+        </div>
+      ),
+    },
     { id: "role", header: "Role", cell: (row) => roleLabels[row.role] },
-    { id: "upt", header: "UPT", cell: (row) => row.upt?.name ?? (row.uptId ? uptById.get(row.uptId)?.name ?? "UPT tidak ditemukan" : "—") },
-    { id: "status", header: "Status", cell: (row) => <StatusBadge status={row.active ? "ACTIVE" : "INACTIVE"} /> },
+    {
+      id: "upt",
+      header: "UPT",
+      cell: (row) =>
+        row.upt?.name ??
+        (row.uptId ? (uptById.get(row.uptId)?.name ?? "UPT tidak ditemukan") : "—"),
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (row) => <StatusBadge status={row.active ? "ACTIVE" : "INACTIVE"} />,
+    },
     {
       id: "actions",
       header: "Aksi",
       className: "text-right",
       cell: (row) => (
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={() => openForm(row)}><Edit3 />Edit</Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => openForm(row)}>
+            <Edit3 />
+            Edit
+          </Button>
           <ConfirmDialog
-            trigger={<Button type="button" variant={row.active ? "destructive" : "outline"} size="sm">{row.active ? "Nonaktifkan" : "Aktifkan"}</Button>}
+            trigger={
+              <Button type="button" variant={row.active ? "destructive" : "outline"} size="sm">
+                {row.active ? "Nonaktifkan" : "Aktifkan"}
+              </Button>
+            }
             title={`${row.active ? "Nonaktifkan" : "Aktifkan"} pengguna?`}
             description={`${row.name} akan ${row.active ? "dinonaktifkan" : "diaktifkan"}.`}
             confirmLabel={row.active ? "Nonaktifkan" : "Aktifkan"}
@@ -172,35 +236,253 @@ export default function UsersPage() {
   return (
     <AppShell>
       {!allowed ? (
-        <section className="rounded-xl border bg-card p-8 text-center"><h1 className="text-xl font-bold">Akses ditolak</h1><p className="mt-2 text-sm text-muted-foreground">Manajemen pengguna hanya tersedia untuk Admin SIMPATIK.</p></section>
+        <section className="rounded-xl border bg-card p-8 text-center">
+          <h1 className="text-xl font-bold">Akses ditolak</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Manajemen pengguna hanya tersedia untuk Admin SIMPATIK.
+          </p>
+        </section>
       ) : denied ? (
-        <section className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center" role="alert"><h1 className="text-xl font-bold text-destructive">Akses ditolak</h1><p className="mt-2 text-sm text-destructive">Anda tidak memiliki izin mengelola pengguna.</p></section>
+        <section
+          className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 text-center"
+          role="alert"
+        >
+          <h1 className="text-xl font-bold text-destructive">Akses ditolak</h1>
+          <p className="mt-2 text-sm text-destructive">
+            Anda tidak memiliki izin mengelola pengguna.
+          </p>
+        </section>
       ) : (
         <div className="space-y-8">
-          <PageHeader eyebrow="Administrasi" title="Pengguna" description="Kelola akun, role, penempatan UPT, dan status akses pengguna." actions={<Button type="button" onClick={() => openForm()}><Plus />Tambah pengguna</Button>} />
+          <PageHeader
+            eyebrow="Administrasi"
+            title="Pengguna"
+            description="Kelola akun, role, penempatan UPT, dan status akses pengguna."
+            actions={
+              <Button type="button" onClick={() => openForm()}>
+                <Plus />
+                Tambah pengguna
+              </Button>
+            }
+          />
           <FilterBar
-            onSubmit={(event) => { event.preventDefault(); setPage(1); setFilters({ search: search.trim(), role, uptId, active }); }}
-            onReset={() => { setSearch(""); setRole(""); setUptId(""); setActive(""); setPage(1); setFilters({ search: "", role: "", uptId: "", active: "" }); }}
+            onSubmit={(event) => {
+              event.preventDefault();
+              setPage(1);
+              setFilters({ search: search.trim(), role, uptId, active });
+            }}
+            onReset={() => {
+              setSearch("");
+              setRole("");
+              setUptId("");
+              setActive("");
+              setPage(1);
+              setFilters({ search: "", role: "", uptId: "", active: "" });
+            }}
           >
-            <FormField id="user-search" label="Cari pengguna"><div className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" /><Input id="user-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Nama atau email" className="pl-9" /></div></FormField>
-            <FormField id="user-role-filter" label="Role"><Select id="user-role-filter" value={role} onChange={(event) => setRole(event.target.value)}><option value="">Semua role</option>{roles.map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</Select></FormField>
-            <FormField id="user-upt-filter" label="UPT"><Select id="user-upt-filter" value={uptId} onChange={(event) => setUptId(event.target.value)}><option value="">Semua UPT</option>{upts.map((upt) => <option key={upt.id} value={upt.id}>{upt.code} — {upt.name}</option>)}</Select></FormField>
-            <FormField id="user-active-filter" label="Status"><Select id="user-active-filter" value={active} onChange={(event) => setActive(event.target.value)}><option value="">Semua status</option><option value="true">Aktif</option><option value="false">Nonaktif</option></Select></FormField>
+            <FormField id="user-search" label="Cari pengguna">
+              <div className="relative">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="user-search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Nama atau email"
+                  className="pl-9"
+                />
+              </div>
+            </FormField>
+            <FormField id="user-role-filter" label="Role">
+              <Select
+                id="user-role-filter"
+                value={role}
+                onChange={(event) => setRole(event.target.value)}
+              >
+                <option value="">Semua role</option>
+                {roles.map((item) => (
+                  <option key={item} value={item}>
+                    {roleLabels[item]}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField id="user-upt-filter" label="UPT">
+              <Select
+                id="user-upt-filter"
+                value={uptId}
+                onChange={(event) => setUptId(event.target.value)}
+              >
+                <option value="">Semua UPT</option>
+                {upts.map((upt) => (
+                  <option key={upt.id} value={upt.id}>
+                    {upt.code} — {upt.name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField id="user-active-filter" label="Status">
+              <Select
+                id="user-active-filter"
+                value={active}
+                onChange={(event) => setActive(event.target.value)}
+              >
+                <option value="">Semua status</option>
+                <option value="true">Aktif</option>
+                <option value="false">Nonaktif</option>
+              </Select>
+            </FormField>
           </FilterBar>
-          {optionsError ? <p className="text-sm text-destructive" role="alert">Opsi UPT: {optionsError}</p> : null}
-          <DataTable columns={columns} data={rows} getRowId={(row) => row.id} caption="Daftar pengguna" loading={loading} loadingLabel="Memuat daftar pengguna..." error={error ?? undefined} onRetry={() => void load()} pagination={pagination} onPageChange={setPage} emptyTitle="Pengguna belum tersedia" emptyDescription="Belum ada pengguna yang sesuai dengan filter saat ini." />
+          {optionsError ? (
+            <p className="text-sm text-destructive" role="alert">
+              Opsi UPT: {optionsError}
+            </p>
+          ) : null}
+          <DataTable
+            columns={columns}
+            data={rows}
+            getRowId={(row) => row.id}
+            caption="Daftar pengguna"
+            loading={loading}
+            loadingLabel="Memuat daftar pengguna..."
+            error={error ?? undefined}
+            onRetry={() => void load()}
+            pagination={pagination}
+            onPageChange={setPage}
+            emptyTitle="Pengguna belum tersedia"
+            emptyDescription="Belum ada pengguna yang sesuai dengan filter saat ini."
+          />
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogContent>
-              <DialogHeader><DialogTitle>{editing ? "Ubah pengguna" : "Tambah pengguna"}</DialogTitle><DialogDescription>Password tidak pernah ditampilkan. Isi password hanya saat membuat atau mereset password.</DialogDescription></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>{editing ? "Ubah pengguna" : "Tambah pengguna"}</DialogTitle>
+                <DialogDescription>
+                  Password tidak pernah ditampilkan. Isi password hanya saat membuat atau mereset
+                  password.
+                </DialogDescription>
+              </DialogHeader>
               <Form onSubmit={save} noValidate>
-                {formError ? <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">{formError}</p> : null}
-                <FormField id="user-name" label="Nama" required><Input id="user-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} required disabled={saving} /></FormField>
-                <FormField id="user-email" label="Email" required><Input id="user-email" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} required disabled={saving} /></FormField>
-                <FormField id="user-password" label={editing ? "Reset password" : "Password"} description={editing ? "Kosongkan jika password tidak diubah." : "Minimal 8 karakter."} required={!editing}><Input id="user-password" type="password" autoComplete="new-password" value={form.password ?? ""} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} required={!editing} disabled={saving} /></FormField>
-                <FormField id="user-role" label="Role" required><Select id="user-role" value={form.role} onChange={(event) => changeRole(event.target.value as AppRole)} disabled={saving}>{roles.map((item) => <option key={item} value={item}>{roleLabels[item]}</option>)}</Select></FormField>
-                <FormField id="user-upt" label="Penempatan UPT" required={uptRoles.includes(form.role)} description={uptRoles.includes(form.role) ? "Wajib untuk role UPT." : "Role non-UPT tidak memiliki penempatan UPT."}><Select id="user-upt" value={form.uptId ?? ""} onChange={(event) => setForm((current) => ({ ...current, uptId: event.target.value || null }))} disabled={saving || !uptRoles.includes(form.role) || optionsLoading}><option value="">Pilih UPT</option>{upts.map((upt) => <option key={upt.id} value={upt.id} disabled={!upt.active}>{upt.code} — {upt.name}{!upt.active ? " (nonaktif)" : ""}</option>)}</Select></FormField>
-                <label className="flex items-center gap-3 text-sm font-medium" htmlFor="user-form-active"><Checkbox id="user-form-active" checked={form.active} onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))} disabled={saving} />Akun aktif</label>
-                <DialogFooter><Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Button></DialogFooter>
+                {formError ? (
+                  <p
+                    className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                    role="alert"
+                  >
+                    {formError}
+                  </p>
+                ) : null}
+                <FormField id="user-name" label="Nama" required>
+                  <Input
+                    id="user-name"
+                    value={form.name}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, name: event.target.value }))
+                    }
+                    required
+                    disabled={saving}
+                  />
+                </FormField>
+                <FormField id="user-email" label="Email" required>
+                  <Input
+                    id="user-email"
+                    type="email"
+                    value={form.email}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, email: event.target.value }))
+                    }
+                    required
+                    disabled={saving}
+                  />
+                </FormField>
+                <FormField
+                  id="user-password"
+                  label={editing ? "Reset password" : "Password"}
+                  description={
+                    editing ? "Kosongkan jika password tidak diubah." : "Minimal 8 karakter."
+                  }
+                  required={!editing}
+                >
+                  <Input
+                    id="user-password"
+                    type="password"
+                    autoComplete="new-password"
+                    value={form.password ?? ""}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, password: event.target.value }))
+                    }
+                    required={!editing}
+                    disabled={saving}
+                  />
+                </FormField>
+                <FormField id="user-role" label="Role" required>
+                  <Select
+                    id="user-role"
+                    value={form.role}
+                    onChange={(event) => changeRole(event.target.value as AppRole)}
+                    disabled={saving}
+                  >
+                    {roles.map((item) => (
+                      <option key={item} value={item}>
+                        {roleLabels[item]}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+                <FormField
+                  id="user-upt"
+                  label="Penempatan UPT"
+                  required={uptRoles.includes(form.role)}
+                  description={
+                    uptRoles.includes(form.role)
+                      ? "Wajib untuk role UPT."
+                      : "Role non-UPT tidak memiliki penempatan UPT."
+                  }
+                >
+                  <Select
+                    id="user-upt"
+                    value={form.uptId ?? ""}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, uptId: event.target.value || null }))
+                    }
+                    disabled={saving || !uptRoles.includes(form.role) || optionsLoading}
+                  >
+                    <option value="">Pilih UPT</option>
+                    {upts.map((upt) => (
+                      <option key={upt.id} value={upt.id} disabled={!upt.active}>
+                        {upt.code} — {upt.name}
+                        {!upt.active ? " (nonaktif)" : ""}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+                <label
+                  className="flex items-center gap-3 text-sm font-medium"
+                  htmlFor="user-form-active"
+                >
+                  <Checkbox
+                    id="user-form-active"
+                    checked={form.active}
+                    onChange={(event) =>
+                      setForm((current) => ({ ...current, active: event.target.checked }))
+                    }
+                    disabled={saving}
+                  />
+                  Akun aktif
+                </label>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setDialogOpen(false)}
+                    disabled={saving}
+                  >
+                    Batal
+                  </Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? "Menyimpan..." : "Simpan"}
+                  </Button>
+                </DialogFooter>
               </Form>
             </DialogContent>
           </Dialog>
